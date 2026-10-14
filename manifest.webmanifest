@@ -1,0 +1,18 @@
+{
+  "name": "ZeroHours Spend",
+  "short_name": "ZH Spend",
+  "description": "Track receipts, expenses and spending limits",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#09223f",
+  "icons": [
+    {
+      "src": "/assets/spend-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
