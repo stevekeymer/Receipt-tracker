@@ -31,12 +31,13 @@ async function setup(user,pin){
 async function unlock(pin){const meta=await account();if(!meta)throw Error('Offline access is not configured');if(Date.now()<(meta.lockedUntil||0))throw Error('Too many attempts. Try again later.');
  try{const key=await derive(pin,meta.salt),proof=await decrypt(meta.check,key);if(proof.userId!==meta.userId)throw Error('Incorrect PIN');activeUser=meta.userId;activeKey=key;await put('locks',{...meta,failed:0,lockedUntil:0});return {id:meta.userId,email:meta.email}}catch(e){const failed=(meta.failed||0)+1;await put('locks',{...meta,failed,lockedUntil:failed>=5?Date.now()+300000:0});throw Error('Incorrect offline PIN'+(failed>=5?'. Wait five minutes before retrying.':'.'))}}
 function lock(){activeUser=null;activeKey=null}
+async function clear(userId){if(!ready(userId))throw Error('Unlock offline data before signing out');for(const task of await pending(userId))throw Error('Sync pending offline expenses before signing out');await del('snapshots',userId);await del('locks',userId);lock()}
 function ready(id){return activeUser===id&&!!activeKey}
 async function snapshot(userId){if(!ready(userId))return null;const row=await get('snapshots',userId);if(!row)return null;return decrypt(row)}
 async function cache(userId,expenses,items){if(!ready(userId))return;const value=await encrypt({expenses,items,updatedAt:Date.now()});await put('snapshots',{userId,...value})}
 async function pending(userId){if(!ready(userId))return [];const rows=(await all('queue')).filter(t=>t.userId===userId).sort((a,b)=>a.createdAt-b.createdAt);return Promise.all(rows.map(async row=>decrypt(row)))}
 async function enqueue(userId,entry,items){if(!ready(userId))throw Error('Set up and unlock your offline PIN first');const id=crypto.randomUUID();const task={id,userId,entry:{...entry,id,user_id:userId},items:items.map(i=>({...i,id:crypto.randomUUID(),expense_id:id})),createdAt:Date.now()};await put('queue',{id,userId,createdAt:task.createdAt,...await encrypt(task)});return task}
 async function sync(sb,userId){if(!navigator.onLine||!ready(userId))return {synced:0,remaining:0};let synced=0;for(const task of await pending(userId)){try{const {error}=await sb.from('expenses').upsert(task.entry,{onConflict:'id'});if(error)throw error;if(task.items.length){const {error:itemError}=await sb.from('expense_items').upsert(task.items,{onConflict:'id'});if(itemError)throw itemError}await del('queue',task.id);synced++}catch(e){console.warn('Expense remains queued for retry',e);break}}return {synced,remaining:(await pending(userId)).length}}
-window.spendOffline={account,setup,unlock,lock,ready,snapshot,cache,pending,enqueue,sync};
+window.spendOffline={account,setup,unlock,lock,clear,ready,snapshot,cache,pending,enqueue,sync};
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.warn));
 })();
