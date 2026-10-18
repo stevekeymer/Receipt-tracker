@@ -43,13 +43,14 @@ async function disable(userId){
  await del('locks',userId);
  lock();
 }
-async function resetForgotten(userId){
+async function resetForgotten(userId,discardUnsynced=false){
  if(!navigator.onLine)throw Error('Reconnect to reset the PIN');
  const meta=await account();
  if(!meta)return;
  if(meta.userId!==userId)throw Error('This device contains offline data for another account');
  const queued=(await all('queue')).filter(t=>t.userId===userId);
- if(queued.length)throw Error('This device has '+queued.length+' encrypted unsynced expense(s). They cannot be recovered without the old PIN. To preserve them, cancel and unlock with your old PIN.');
+ if(queued.length&&!discardUnsynced)throw Error('This device has '+queued.length+' encrypted unsynced expense(s). They cannot be recovered without the old PIN. To preserve them, cancel and unlock with your old PIN.');
+ if(discardUnsynced)for(const row of queued)await del('queue',row.id);
  await del('snapshots',userId);
  await del('locks',userId);
  lock();
