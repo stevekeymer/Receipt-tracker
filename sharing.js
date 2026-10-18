@@ -10,6 +10,7 @@ async function refreshSpendShares(){
  if(error){console.warn('Unable to load household access',error);return}
  spendShareRows=data||[];
  if(sharedSpendMode()&&!spendShareRows.some(s=>s.owner_id===spendWorkspaceOwner&&s.member_id===currentUser.id&&s.status==='active'))spendWorkspaceOwner=currentUser.id;
+ if(sharedSpendMode()&&!canViewSpendExpenses()){expenses=[];expenseItems=[];document.getElementById('expenseDetails').style.display='none';}
  renderSpendShares();if(typeof render==='function')render();
 }
 function renderSpendShares(){
