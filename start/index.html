@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7fafc">
+<title>ZeroHours Spend — Less receipt chaos. More clarity.</title>
+<meta name="description" content="Keep your expenses organized with ZeroHours Spend. Capture receipts, track spending and stay on top of everyday purchases.">
+<link rel="icon" type="image/svg+xml" href="/assets/spend-icon.svg">
+<meta property="og:type" content="website"><meta property="og:title" content="ZeroHours Spend — Keep expenses simple"><meta property="og:description" content="Capture receipts. Track spending. Stay organized."><meta property="og:url" content="https://spend.zerohours.ca/start/">
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#152b40;background:#f7fafc;font-synthesis:none}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}p{line-height:1.65} .container{max-width:1160px;margin:auto;padding:0 24px}
+header{background:#fff;border-bottom:1px solid #e9eff3;position:sticky;top:0;z-index:10}.nav{height:78px;display:flex;align-items:center;justify-content:space-between;gap:16px}.logo{height:38px;max-width:195px}.nav-actions{display:flex;align-items:center;gap:22px;font-size:14px;font-weight:700}.nav-actions a:first-child{color:#50677b}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:13px;padding:15px 23px;background:#087f90;color:white;font-weight:800;box-shadow:0 10px 24px #087f9024;transition:transform .15s,background .15s}.btn:hover{background:#056c7c;transform:translateY(-1px)}.btn-outline{background:white;color:#086e7e;border:1px solid #b8d6dc;box-shadow:none}.btn-outline:hover{background:#edf9fa}.btn-small{padding:11px 16px;font-size:14px}
+.hero{padding:78px 0 72px;background:radial-gradient(circle at 80% 30%,#d6f3ef 0,transparent 36%),linear-gradient(135deg,#f7fbff,#f4fbf9)}.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;align-items:center;gap:64px}.eyebrow{display:inline-flex;align-items:center;gap:8px;background:#e5f6f4;color:#087785;border-radius:999px;padding:8px 13px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-weight:850}.dot{height:7px;width:7px;background:#16a88c;border-radius:50%}h1{font-size:clamp(40px,5.3vw,67px);line-height:1.07;letter-spacing:-.055em;margin:22px 0;color:#122d40}h1 em{font-style:normal;color:#088d9a}.lead{font-size:19px;color:#52677b;max-width:540px;margin:0 0 28px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap}.reassure{color:#667b89;font-size:13px;margin:18px 0 0}.preview{background:#fff;border:1px solid #e4ecf1;box-shadow:0 28px 80px #0e46621d;border-radius:25px;padding:24px;transform:rotate(1deg)}.preview-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eaf0f3;padding-bottom:19px}.preview-top strong{font-size:20px}.preview-badge{font-size:12px;color:#087f90;background:#e6f8f5;padding:7px 10px;border-radius:99px;font-weight:750}.preview-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}.preview-card{background:#f5f8fb;border-radius:16px;padding:18px}.preview-card small{color:#6a7c8d;font-size:12px}.preview-card b{display:block;font-size:28px;margin-top:7px;letter-spacing:-.04em}.preview-card:last-child{background:#eaf7f4}.expense-row{display:flex;align-items:center;gap:13px;padding:13px 3px;border-top:1px solid #eaf0f3}.expense-icon{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;background:#e9f1fa;font-size:20px}.expense-copy{flex:1}.expense-copy strong{display:block;font-size:14px}.expense-copy small{color:#8a99a8}.expense-row b{font-size:14px}.mock-note{font-size:11px;color:#8997a5;margin-top:10px;text-align:center}
+.trust{padding:22px 0;background:#fff;border-top:1px solid #edf2f4;border-bottom:1px solid #edf2f4}.trust-inner{display:flex;justify-content:center;gap:48px;flex-wrap:wrap;color:#5c7180;font-weight:700;font-size:13px}
+.section{padding:88px 0}.section h2{font-size:clamp(29px,3.5vw,43px);letter-spacing:-.045em;margin:10px 0 14px}.section-intro{color:#667b8a;max-width:640px;margin:0 auto 42px}.center{text-align:center}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.feature{background:#fff;border:1px solid #e5edf1;border-radius:20px;padding:28px;box-shadow:0 8px 22px #17364b08}.feature-icon{font-size:25px;width:55px;height:55px;border-radius:15px;background:#e8f7f5;display:grid;place-items:center}.feature h3{font-size:19px;margin:20px 0 8px;letter-spacing:-.02em}.feature p{font-size:15px;color:#617688;margin:0}
+.steps{background:#eef8f8}.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:25px;margin-top:45px}.step{position:relative}.step-num{width:42px;height:42px;border-radius:13px;background:#087f90;color:white;display:grid;place-items:center;font-weight:850}.step h3{font-size:19px;margin:20px 0 8px}.step p{color:#5b7182;margin:0}
+.audience{display:grid;grid-template-columns:1fr 1fr;gap:20px}.audience-card{border:1px solid #e2ebef;border-radius:23px;padding:34px;background:#fff}.audience-card:nth-child(2){background:#f0faf8}.audience-card h3{font-size:25px;letter-spacing:-.04em;margin:0 0 12px}.audience-card p{color:#637787}.audience-card ul{padding-left:20px;line-height:2;color:#344c5e}
+.faq{max-width:790px;margin:auto}.faq details{border-bottom:1px solid #dce7ec;padding:19px 0}.faq summary{font-weight:800;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px}.faq summary:after{content:'+';font-size:22px;color:#087f90}.faq details[open] summary:after{content:'−'}.faq p{color:#627788;margin-bottom:0}
+.final{background:#10364b;color:white;text-align:center;padding:78px 24px}.final h2{font-size:clamp(32px,4vw,47px);letter-spacing:-.05em;margin:0 0 14px}.final p{color:#d1e2e9;max-width:560px;margin:0 auto 26px}.final .btn{background:#16a6ae}.final .btn:hover{background:#0e8e98}
+footer{background:#0c2a3b;color:#aec6d0;padding:28px 0;font-size:13px}footer .container{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer a{text-decoration:underline}
+@media(max-width:850px){.hero-grid{grid-template-columns:1fr;gap:36px}.preview{max-width:590px;transform:none}.feature-grid,.steps-grid{grid-template-columns:1fr 1fr}.hero{padding:54px 0}.section{padding:66px 0}}
+@media(max-width:600px){.container{padding:0 19px}.nav{height:66px}.logo{max-width:165px}.nav-actions{gap:12px}.nav-actions a:first-child{display:none}.hero{padding:45px 0 52px}.hero-grid{gap:30px}h1{font-size:43px}.lead{font-size:17px}.hero-actions .btn{width:100%}.preview{padding:18px}.feature-grid,.steps-grid,.audience{grid-template-columns:1fr}.feature,.audience-card{padding:24px}.trust-inner{gap:12px 22px}.section{padding:54px 0}}
+</style>
+</head>
+<body>
+<header><div class="container nav"><a href="/start/" aria-label="ZeroHours Spend home"><img class="logo" src="/assets/spend-logo.svg" alt="ZeroHours Spend"></a><nav class="nav-actions"><a href="#how">How it works</a><a class="btn btn-small signup-link" href="/?signup=1">Get started →</a></nav></div></header>
+<main>
+<section class="hero"><div class="container hero-grid">
+<div><span class="eyebrow"><span class="dot"></span> A simpler way to stay organized</span>
+<h1 id="hero-title">Less receipt chaos.<br><em>More clarity.</em></h1>
+<p class="lead" id="hero-subtitle">Capture receipts, record expenses and see where your money goes — all in one straightforward place.</p>
+<div class="hero-actions"><a class="btn signup-link" href="/?signup=1">Start organizing expenses →</a><a class="btn btn-outline" href="#how">See how it works</a></div>
+<p class="reassure">Create an account to get started. No complicated setup.</p></div>
+<div class="preview" role="img" aria-label="Illustrative example of an expense dashboard">
+<div class="preview-top"><strong>Spending overview</strong><span class="preview-badge">● Organized</span></div>
+<div class="preview-cards"><div class="preview-card"><small>Example monthly spending</small><b>$1,248.60</b></div><div class="preview-card"><small>Expenses tracked</small><b>24</b></div></div>
+<div class="expense-row"><div class="expense-icon">🛒</div><div class="expense-copy"><strong>Groceries</strong><small>Shopping</small></div><b>−$86.42</b></div>
+<div class="expense-row"><div class="expense-icon">⛽</div><div class="expense-copy"><strong>Fuel</strong><small>Transport</small></div><b>−$64.10</b></div>
+<div class="expense-row"><div class="expense-icon">☕</div><div class="expense-copy"><strong>Coffee shop</strong><small>Dining</small></div><b>−$12.75</b></div>
+<div class="mock-note">Illustrative data — not an actual user account</div>
+</div></div></section>
+<div class="trust"><div class="container trust-inner"><span>✓ Receipt and document scanning</span><span>✓ Expense tracking</span><span>✓ Shared access options</span><span>✓ Works on your phone</span></div></div>
+<section class="section" id="features"><div class="container"><div class="center"><span class="eyebrow">Why ZeroHours Spend?</span><h2>Everything in one place, without the spreadsheet.</h2><p class="section-intro">Stop searching through photos, emails and paper receipts when you need to know what you spent.</p></div>
+<div class="feature-grid">
+<article class="feature"><div class="feature-icon">📷</div><h3>Capture receipts</h3><p>Take a photo or upload a supported document. AI-assisted scanning helps fill in the expense details for you to review.</p></article>
+<article class="feature"><div class="feature-icon">📊</div><h3>Understand spending</h3><p>Organize purchases into categories and keep a clearer picture of your recorded expenses.</p></article>
+<article class="feature"><div class="feature-icon">👥</div><h3>Share access</h3><p>Invite someone you trust to help capture or manage expenses with permission-based access.</p></article>
+</div></div></section>
+<section class="section steps" id="how"><div class="container"><div class="center"><span class="eyebrow">Three simple steps</span><h2>From receipt to organized.</h2></div><div class="steps-grid">
+<div class="step"><span class="step-num">1</span><h3>Create your account</h3><p>Get started with your own expense space using your email address.</p></div>
+<div class="step"><span class="step-num">2</span><h3>Add an expense</h3><p>Enter the details yourself, or scan a receipt and review the suggested information.</p></div>
+<div class="step"><span class="step-num">3</span><h3>Stay on top of it</h3><p>Return whenever you need to see and organize what you've recorded.</p></div>
+</div></div></section>
+<section class="section"><div class="container"><div class="center"><span class="eyebrow">Made for real life</span><h2>One app. Two everyday needs.</h2><p class="section-intro">Whether you're running a small business or keeping a household organized, start with the essentials.</p></div><div class="audience">
+<article class="audience-card"><h3>For small businesses</h3><p>Keep business purchases easier to find and review.</p><ul><li>Record purchases as they happen</li><li>Capture invoices and receipts</li><li>Keep spending categories organized</li></ul><a class="btn signup-link" href="/?signup=1">Organize business expenses →</a></article>
+<article class="audience-card"><h3>For families</h3><p>Bring everyday household spending into one place.</p><ul><li>Track grocery and everyday purchases</li><li>Understand where money is going</li><li>Share expense access with your household</li></ul><a class="btn signup-link" href="/?signup=1">Organize family expenses →</a></article>
+</div></div></section>
+<section class="section"><div class="container faq"><div class="center"><span class="eyebrow">Common questions</span><h2>Good to know.</h2></div>
+<details><summary>Do I need to download an app?</summary><p>No. ZeroHours Spend runs in your browser and can be added to a supported phone's home screen.</p></details>
+<details><summary>Can I scan a receipt instead of typing everything?</summary><p>Yes. Upload a supported receipt image or PDF and review the AI-extracted details before saving. Scanning requires an internet connection.</p></details>
+<details><summary>Can I share expenses with someone else?</summary><p>Yes. Shared access is available with permission controls. Shared workspaces require an internet connection.</p></details>
+<details><summary>Will it prepare my tax return?</summary><p>No. ZeroHours Spend helps organize expense records; it is not tax filing software or a substitute for professional tax advice.</p></details>
+</div></section>
+<section class="final"><div class="container"><h2>Make the next receipt the easy one.</h2><p>Less searching. Less manual tracking. A clearer view of the expenses you choose to record.</p><a class="btn signup-link" href="/?signup=1">Create your account →</a></div></section>
+</main>
+<footer><div class="container"><span>© <span id="year"></span> ZeroHours Spend</span><span>Made to make expense tracking simpler · <a href="/">Existing users: sign in</a></span></div></footer>
+<script>
+document.getElementById('year').textContent=new Date().getFullYear();
+const params=new URLSearchParams(location.search),audience=(params.get('audience')||params.get('utm_campaign')||'').toLowerCase();
+if(audience.includes('business')){document.getElementById('hero-title').innerHTML='Business receipts,<br><em>finally organized.</em>';document.getElementById('hero-subtitle').textContent='Capture receipts, record purchases and keep your business expenses in one simple place.'}
+else if(audience.includes('family')||audience.includes('household')){document.getElementById('hero-title').innerHTML='Know where your<br><em>family money goes.</em>';document.getElementById('hero-subtitle').textContent='Track everyday purchases, capture receipts and make household spending easier to understand.'}
+document.querySelectorAll('.signup-link').forEach(a=>{const p=new URLSearchParams(location.search);p.set('signup','1');a.href='/?'+p.toString()});
+</script>
+</body></html>
