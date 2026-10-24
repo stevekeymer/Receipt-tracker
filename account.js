@@ -33,12 +33,23 @@ async function spendChangeEmail(event){
  const email=document.getElementById('spendProfileEmail').value.trim().toLowerCase();
  const button=document.getElementById('spendEmailSave');
  if(!email||email===currentUser.email?.toLowerCase()){spendAccountNotice('Enter a different email address.',true);return}
- if(!confirm('Request to change your sign-in email to '+email+'? Verification may be required at both addresses.'))return;
+ const password=document.getElementById('spendEmailPassword').value;
+ if(!password){spendAccountNotice('Enter your current password to authorize this change.',true);return}
+ if(!navigator.onLine){spendAccountNotice('Connect to the internet before changing your email.',true);return}
+ if(!confirm('Request to change your sign-in email to '+email+'?'))return;
  button.disabled=true;
  try{
-  const {error}=await sb.auth.updateUser({email});
+  // Verify password in an isolated, non-persistent client so the active MFA session is preserved.
+  const verificationClient=window.supabase.createClient('https://pbbqmedwddfmnlmnsxtx.supabase.co','sb_publishable_eNkrJqt7TAQnuffUXftOTg_OeibVV-Z',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const {data:check,error:checkError}=await verificationClient.auth.signInWithPassword({email:currentUser.email,password});
+  if(checkError||!check?.user||check.user.id!==currentUser.id)throw Error('Current password is incorrect. Email was not changed.');
+  const {data:level,error:levelError}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(levelError)throw levelError;
+  if(level.nextLevel==='aal2'&&level.currentLevel!=='aal2')throw Error('Complete authenticator verification by signing in again before changing your email.');
+  const {error}=await sb.auth.updateUser({email,emailRedirectTo:'https://spend.zerohours.ca/'});
   if(error)throw error;
-  spendAccountNotice('Email change requested. Follow the verification instructions sent to your email address(es). Your existing email stays active until confirmed.');
+  document.getElementById('spendEmailPassword').value='';
+  spendAccountNotice('Email change requested. Check your new address for the confirmation link. Depending on the Supabase security setting, confirmation from the old address may also be required.');
  }catch(e){spendAccountNotice(e.message||'Unable to change your email.',true)}
  finally{button.disabled=false}
 }
