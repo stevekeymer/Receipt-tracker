@@ -61,4 +61,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  script.src='/settings-ui.js?v=1';
  script.onerror=()=>console.warn('Settings UI enhancement unavailable; standard settings remain accessible.');
  document.body.appendChild(script);
+ // Public product information is accessible without signing in.
+ const authPanel=document.querySelector('#authGate > .panel');
+ if(authPanel&&!document.getElementById('spendLearnMore')){
+   const link=document.createElement('a');
+   link.id='spendLearnMore';
+   link.href='/features.html';
+   link.textContent='Learn about ZeroHours Spend';
+   link.style.cssText='display:block;text-align:center;margin-top:14px;font-size:14px;color:#625cdd;font-weight:700';
+   authPanel.appendChild(link);
+ }
 });
