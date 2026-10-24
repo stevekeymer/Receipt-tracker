@@ -37,6 +37,10 @@ function renderSpendShares(){
  const sharedOptions=incoming.map(s=>'<option value="shared:'+s.account_id+'">Shared with me · '+escapeHTML(spendAccountName(s.account_id))+'</option>').join('');
  select.innerHTML='<optgroup label="My accounts">'+ownOptions+'</optgroup>'+(incoming.length?'<optgroup label="Shared with me">'+sharedOptions+'</optgroup>':'');
  select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
+ const quick=document.getElementById('spendQuickAccountSelect');
+ if(quick){quick.innerHTML=select.innerHTML;quick.value=select.value}
+ const captureLabel=document.getElementById('spendCaptureAccountLabel');
+ if(captureLabel)captureLabel.textContent='Saving to: '+spendAccountName(activeSpendAccount())+(sharedSpendMode()?' (shared)':'');
  const inviteAccount=document.getElementById('spendInviteAccount');
  if(inviteAccount){
   const previous=inviteAccount.value;
