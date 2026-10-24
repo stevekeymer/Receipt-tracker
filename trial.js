@@ -46,3 +46,11 @@ async function spendTrialSignOut(){
 async function spendTrialRetry(){
  if(await spendCheckEntitlement())location.reload();
 }
+
+/* Revalidate open sessions so an expired trial does not keep the app unlocked. */
+async function spendRevalidateAccess(){
+ if(!currentUser||document.getElementById('authGate')?.style.display!=='none')return;
+ await spendCheckEntitlement();
+}
+setInterval(spendRevalidateAccess,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)spendRevalidateAccess()});
