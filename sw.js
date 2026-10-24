@@ -1,4 +1,4 @@
-const CACHE='zh-spend-shell-v20';
+const CACHE='zh-spend-shell-v21';
 const SHELL=['/','/index.html','/manifest.webmanifest','/offline.js','/sharing.js','/recycle.js','/mfa.js','/account.js','/billing.js','/assets/spend-icon.svg','/assets/spend-icon.png','/assets/spend-logo.svg'];
 const SUPABASE_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js';
 self.addEventListener('install',event=>{event.waitUntil((async()=>{const cache=await caches.open(CACHE);await Promise.allSettled([...SHELL,SUPABASE_JS].map(url=>cache.add(url)));await self.skipWaiting()})())});
