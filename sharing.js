@@ -22,13 +22,29 @@ function spendAccountName(id){return spendAccountRows.find(a=>a.id===id)?.name||
 function spendPermissionLabel(s){return s.allow_delete?'View, add, edit and delete':s.allow_view?'View, add and edit':'Add only'}
 async function refreshSpendShares(){
  if(!currentUser||!navigator.onLine)return;
- const [{data:shares,error:shareError},{data:accounts,error:accountError}]=await Promise.all([
-  sb.from('spend_shares').select('id,account_id,owner_id,member_id,invite_email,status,allow_view,allow_delete,created_at').order('created_at',{ascending:false}),
-  sb.from('expense_accounts').select('id,owner_id,name,is_default,created_at').order('created_at')
+ const select=document.getElementById('spendQuickAccountSelect');
+ if(select&&!select.options.length)select.innerHTML='<option value="">Loading expense accounts…</option>';
+ // Load accounts independently: a sharing permission/query failure must not hide owned accounts.
+ const [accountResult,shareResult]=await Promise.allSettled([
+  sb.from('expense_accounts').select('id,owner_id,name,is_default,created_at').order('created_at'),
+  sb.from('spend_shares').select('id,account_id,owner_id,member_id,invite_email,status,allow_view,allow_delete,created_at').order('created_at',{ascending:false})
  ]);
- if(shareError||accountError){console.warn('Could not load account sharing',shareError||accountError);return}
- spendShareRows=shares||[];spendAccountRows=accounts||[];
- if(!spendActiveAccountId||!spendAccountRows.some(a=>a.id===spendActiveAccountId&&a.owner_id===currentUser.id))spendActiveAccountId=personalSpendAccount(currentUser.id)?.id||null;
+ const accounts=accountResult.status==='fulfilled'?accountResult.value:{error:accountResult.reason};
+ const shares=shareResult.status==='fulfilled'?shareResult.value:{error:shareResult.reason};
+ if(accounts.error){
+  console.error('Unable to load expense accounts',accounts.error);
+  if(select)select.innerHTML='<option value="">Accounts unavailable — retry in Configure</option>';
+  const note=document.getElementById('spendAccountContext');
+  if(note)note.textContent='Could not load accounts. Check your connection or session, then retry.';
+  return;
+ }
+ spendAccountRows=accounts.data||[];
+ if(shares.error){
+  console.warn('Could not load account sharing',shares.error);
+  spendShareRows=[];
+ }else spendShareRows=shares.data||[];
+ if(!spendActiveAccountId||!spendAccountRows.some(a=>a.id===spendActiveAccountId&&a.owner_id===currentUser.id))
+  spendActiveAccountId=personalSpendAccount(currentUser.id)?.id||spendAccountRows.find(a=>a.owner_id===currentUser.id)?.id||null;
  if(sharedSpendMode()&&(!spendAccountRows.some(a=>a.id===spendSharedAccountId)||!activeSpendShare())){
   spendWorkspaceOwner=currentUser.id;spendSharedAccountId=null;
   expenses=[];expenseItems=[];
@@ -38,6 +54,7 @@ async function refreshSpendShares(){
  renderSpendShares();
  if(typeof render==='function')render();
 }
+
 function renderSpendShares(){
  const select=document.getElementById('spendQuickAccountSelect'),list=document.getElementById('spendSharesList');
  if(!select||!list||!currentUser)return;
@@ -45,8 +62,8 @@ function renderSpendShares(){
  const incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active'&&spendAccountRows.some(a=>a.id===s.account_id));
  const ownOptions=ownedAccounts.map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Default':'')+'</option>').join('');
  const sharedOptions=incoming.map(s=>'<option value="shared:'+s.account_id+'">Shared with me · '+escapeHTML(spendAccountName(s.account_id))+'</option>').join('');
- select.innerHTML='<optgroup label="My accounts">'+ownOptions+'</optgroup>'+(incoming.length?'<optgroup label="Shared with me">'+sharedOptions+'</optgroup>':'');
- select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
+ select.innerHTML=ownedAccounts.length?'<optgroup label="My accounts">'+ownOptions+'</optgroup>'+(incoming.length?'<optgroup label="Shared with me">'+sharedOptions+'</optgroup>':''):'<option value="">No expense accounts available — refresh or contact support</option>';
+ if(ownedAccounts.length)select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
  updateSpendAccountContext();
  const inviteAccount=document.getElementById('spendInviteAccount');
  if(inviteAccount){
