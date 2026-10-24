@@ -1,4 +1,4 @@
-import {reply,stripe,adminUpsert,TEST_PRICE,reconcileMemberSponsors} from './_lib.js';
+import {reply,stripe,adminUpsert,TEST_PRICE,reconcileMemberSponsors,reconcileOwnerMemberSponsors} from './_lib.js';
 const encoder=new TextEncoder();
 function hex(bytes){return Array.from(new Uint8Array(bytes),x=>x.toString(16).padStart(2,'0')).join('')}
 async function validSignature(body,header,secret){
@@ -41,6 +41,7 @@ export async function onRequestPost({request,env}){
     const owner=sub.metadata?.owner_id||session.client_reference_id;
     await updateSubscription(env,sub,owner);
     await reconcileMemberSponsors(env,owner);
+    await reconcileOwnerMemberSponsors(env,owner);
    }
   }else if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(event.type)){
    const object=event.data?.object;
@@ -49,6 +50,7 @@ export async function onRequestPost({request,env}){
     const sub=await stripe(env,'subscriptions/'+encodeURIComponent(object.id),null,'GET');
     await updateSubscription(env,sub,object.metadata.owner_id);
     await reconcileMemberSponsors(env,object.metadata.owner_id);
+    await reconcileOwnerMemberSponsors(env,object.metadata.owner_id);
    }
   }
   return reply({received:true});
