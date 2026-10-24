@@ -1,3 +1,13 @@
+async function spendReconcileSeats(accountId,asOwner=false){
+ if(!navigator.onLine||!currentUser)return;
+ try{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  const path=asOwner?'sync-seats':'reconcile-owner';
+  const response=await fetch('/api/billing/'+path,{method:'POST',headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({account_id:accountId})});
+  if(!response.ok&&response.status!==404&&response.status!==503)console.warn('Seat sync pending',response.status);
+ }catch(e){console.warn('Seat synchronization pending',e.message)}
+}
 /* ZeroHours Spend — account-specific sharing. Online-only for shared accounts. */
 let spendWorkspaceOwner=null,spendShareRows=[],spendAccountRows=[],spendActiveAccountId=null,spendSharedAccountId=null;
 function personalSpendAccount(owner){return spendAccountRows.find(a=>a.owner_id===owner&&a.is_default)}
@@ -98,14 +108,17 @@ async function acceptSpendShare(id){
  if(error){alert('Unable to accept invitation: '+error.message);return}
  await refreshSpendShares();
  const share=spendShareRows.find(s=>s.id===id);
+ if(share)await spendReconcileSeats(share.account_id,false);
  if(share&&confirm('Invitation accepted. Open '+spendAccountName(share.account_id)+' now?'))await switchSpendWorkspace('shared:'+share.account_id);
 }
 async function removeSpendShare(id){
  if(!navigator.onLine){alert('Connect to change shared access.');return}
  if(!confirm('Remove this person’s access to the selected expense account?'))return;
+ const prior=spendShareRows.find(s=>s.id===id);
  const {error}=await sb.rpc('spend_remove_share',{p_id:id});
  if(error){alert('Could not remove access: '+error.message);return}
  await refreshSpendShares();
+ if(prior?.owner_id===currentUser.id)await spendReconcileSeats(prior.account_id,true);
  if(sharedSpendMode())await loadCloudExpenses();
 }
 async function switchSpendWorkspace(value,options={}){
