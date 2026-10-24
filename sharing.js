@@ -24,7 +24,7 @@ function renderSpendShares(){
  const select=document.getElementById('spendWorkspaceSelect'),list=document.getElementById('spendSharesList');
  if(!select||!list||!currentUser)return;
  const owner=activeSpendOwner(),incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active');
- select.innerHTML=spendAccountRows.filter(a=>a.owner_id===currentUser.id).map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Personal':'')+'</option>').join('')+incoming.map(s=>'<option value="shared:'+s.owner_id+'">Shared · '+escapeHTML(personalSpendAccount(s.owner_id)?.name||'Personal')+'</option>').join('');
+ select.innerHTML=spendAccountRows.filter(a=>a.owner_id===currentUser.id).map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Default':'')+'</option>').join('')+incoming.map(s=>'<option value="shared:'+s.owner_id+'">Shared · '+escapeHTML(personalSpendAccount(s.owner_id)?.name||'Personal')+'</option>').join('');
  select.value=sharedSpendMode()?'shared:'+owner:'account:'+activeSpendAccount();
  renderSpendAccountManager();
  const owned=spendShareRows.filter(s=>s.owner_id===currentUser.id);
@@ -37,7 +37,7 @@ function renderSpendShares(){
  ).join('')||'<p>No invitations yet.</p>')+
  '<h4>Invitations for you</h4>'+(pending.map(s=>'<div class="row"><span>Household invitation · '+(s.allow_view?'Can view expenses':'Capture only')+'</span><button class="primary" onclick="acceptSpendShare(\''+s.id+'\')">Accept</button></div>').join('')||'<p>No pending invitations.</p>')+
  (incoming.length?'<h4>Accounts shared with you</h4>'+incoming.map(s=>'<div class="row"><span>Shared household · '+(s.allow_view?'View and capture':'Capture only')+'</span><button class="muted" onclick="removeSpendShare(\''+s.id+'\')">Leave</button></div>').join(''):'');
- const note=document.getElementById('spendWorkspaceNote');if(note)note.textContent=sharedSpendMode()?'Shared household: online only. '+(!canViewSpendExpenses()?'Capture only — you cannot view household transactions.':(canDeleteSpendExpense()?'You can view and delete expenses.':'You can view expenses, but not delete them.')):'Your '+(spendAccountRows.find(a=>a.id===activeSpendAccount())?.name||'Personal')+' expenses. '+(isPersonalSpendAccount()?'Offline PIN is available for Personal.':'Additional accounts require internet.')+';';
+ const note=document.getElementById('spendWorkspaceNote');if(note)note.textContent=sharedSpendMode()?'Shared household: online only. '+(!canViewSpendExpenses()?'Capture only — you cannot view household transactions.':(canDeleteSpendExpense()?'You can view and delete expenses.':'You can view expenses, but not delete them.')):'Your '+(spendAccountRows.find(a=>a.id===activeSpendAccount())?.name||'Personal')+' expenses. '+(isPersonalSpendAccount()?'Offline PIN is available for Personal.' :'Additional accounts require internet.');
 }
 async function inviteSpendShare(){
  if(!navigator.onLine){alert('Connect to invite someone.');return}
