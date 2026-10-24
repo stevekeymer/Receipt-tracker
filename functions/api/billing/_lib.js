@@ -48,3 +48,37 @@ export async function requireAal2IfNeeded(auth){
  // Database RLS protects billing reads; MFA assurance is enforced by the spend_mfa_authorized function.
  return r.ok;
 }
+
+export async function serviceRead(env,table,filter,columns='*'){
+ const url=SUPABASE_URL+'/rest/v1/'+table+'?'+filter+'&select='+encodeURIComponent(columns);
+ const res=await fetch(url,{headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
+ if(!res.ok)throw Error('Billing member lookup failed.');
+ return res.json();
+}
+export async function serviceSeats(env,owner){
+ const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/spend_billable_seats',{method:'POST',headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY,'content-type':'application/json'},body:JSON.stringify({p_owner:owner})});
+ if(!res.ok)throw Error('Could not calculate hybrid seats.');
+ return res.json();
+}
+export async function reconcileOwner(env,owner){
+ const bills=await serviceRead(env,'spend_billing_subscriptions','owner_id=eq.'+encodeURIComponent(owner));
+ const bill=bills[0];
+ if(!bill?.stripe_subscription_id||!['active','trialing','past_due'].includes(bill.status)||bill.environment!=='test')return {owner,skipped:true};
+ const count=await serviceSeats(env,owner);
+ const sub=await stripe(env,'subscriptions/'+encodeURIComponent(bill.stripe_subscription_id),null,'GET');
+ const item=sub.items?.data?.find(i=>i.price?.id===TEST_PRICE);
+ if(!item)throw Error('Subscription seat item missing.');
+ if(item.quantity!==count){
+  await stripe(env,'subscription_items/'+encodeURIComponent(item.id),{quantity:String(count),proration_behavior:'create_prorations'});
+ }
+ return {owner,seats:count,updated:item.quantity!==count};
+}
+export async function reconcileMemberSponsors(env,member){
+ // An individual can be covered by only one subscription. Reconcile every owner
+ // sharing an account with them when their subscription status changes.
+ const shares=await serviceRead(env,'spend_shares','member_id=eq.'+encodeURIComponent(member)+'&status=eq.active','owner_id');
+ const owners=[...new Set(shares.map(s=>s.owner_id))];
+ const result=[];
+ for(const owner of owners)result.push(await reconcileOwner(env,owner));
+ return result;
+}
