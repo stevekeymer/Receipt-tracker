@@ -109,16 +109,17 @@
     const allNotes=billing.querySelectorAll('p.note');
     if(allNotes.length>1)allNotes[allNotes.length-1].hidden=true;
   }
-  // Unavailable SMS is not an actionable setting; keep its DOM for later launch.
+  // SMS MFA is not launched. Remove its informational controls from the
+  // rendered Settings UI, while retaining the working authenticator-app 2FA.
   const mfa=pages.security.querySelector('#spendMfaEnable');
   if(mfa){
-    const parent=mfa.closest('.panel');
-    if(parent){
-      for(const row of parent.querySelectorAll('.row')){
-        if(row.textContent.includes('SMS verification'))row.hidden=true;
+    const panel=mfa.closest('.panel');
+    if(panel){
+      for(const row of panel.querySelectorAll('.row')){
+        if(row.textContent.includes('SMS verification'))row.remove();
       }
-      for(const note of parent.querySelectorAll('p.note')){
-        if(note.textContent.includes('SMS will only'))note.hidden=true;
+      for(const note of panel.querySelectorAll('p.note')){
+        if(note.textContent.includes('SMS will only'))note.remove();
       }
     }
   }
