@@ -115,10 +115,20 @@ async function removeSpendShare(id){
  if(!navigator.onLine){alert('Connect to change shared access.');return}
  if(!confirm('Remove this person’s access to the selected expense account?'))return;
  const prior=spendShareRows.find(s=>s.id===id);
- const {error}=await sb.rpc('spend_remove_share',{p_id:id});
- if(error){alert('Could not remove access: '+error.message);return}
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session){alert('Sign in again to change sharing.');return}
+ try{
+  const response=await fetch('/api/billing/remove-share',{method:'POST',headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({share_id:id})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok){
+   if(response.status!==503)throw Error(result.error||'Unable to remove shared access.');
+   // Test billing not configured: keep sharing available without touching Stripe.
+   const {error}=await sb.rpc('spend_remove_share',{p_id:id});
+   if(error)throw error;
+  }
+ }catch(e){alert('Could not remove access: '+e.message);return}
  await refreshSpendShares();
- if(prior?.owner_id===currentUser.id)await spendReconcileSeats(prior.account_id,true);
+ if(prior?.owner_id===currentUser.id&&typeof spendLoadBilling==='function')await spendLoadBilling();
  if(sharedSpendMode())await loadCloudExpenses();
 }
 async function switchSpendWorkspace(value,options={}){
