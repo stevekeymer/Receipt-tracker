@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  script.onerror=()=>console.warn('Settings UI enhancement unavailable; standard settings remain accessible.');
  document.body.appendChild(script);
  const productScript=document.createElement('script');
- productScript.src='/product-ui.js?v=1';
+ productScript.src='/product-ui.js?v=2';
  document.body.appendChild(productScript);
  // Public product information is accessible without signing in.
  const authPanel=document.querySelector('#authGate > .panel');
