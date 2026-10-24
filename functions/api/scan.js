@@ -13,7 +13,7 @@ export async function onRequestPost({request,env}){
   // Mandatory server-side AI metering: no scan without an active test trial or paid entitlement.
   const meterEnabled=true;
   const requestId=crypto.randomUUID();
-  const reserveCents=100; // $1 conservative in-flight hold per scan; also permits trial PDF scans.
+  const reserveCents=validPdf?50:25; // Temporary concurrent-usage hold; final metering uses estimated actual token costs.
   const authHeader=auth;
   let reserved=false;
   const sbUrl="https://pbbqmedwddfmnlmnsxtx.supabase.co/rest/v1/rpc/";
