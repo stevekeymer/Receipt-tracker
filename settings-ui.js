@@ -124,15 +124,19 @@
   }
 
   function open(id){
-    home.hidden=!!id;
+    const isDetail=!!id;
+    home.hidden=isDetail;
     for(const g of groups)pages[g.id].hidden=g.id!==id;
+    // Only one back link and one heading should be visible at a time.
     const dashboardBack=root.querySelector(':scope > .back');
     if(dashboardBack){
-      dashboardBack.textContent=id?'← All settings':'← Back to dashboard';
-      dashboardBack.onclick=id?()=>open(null):()=>window.go('home');
+      dashboardBack.hidden=isDetail;
+      dashboardBack.textContent='← Back to dashboard';
+      dashboardBack.onclick=()=>window.go('home');
     }
+    if(header)header.hidden=isDetail;
+    if(subtitle&&subtitle.tagName==='P')subtitle.hidden=isDetail;
     window.scrollTo(0,0);
-    if(id)pages[id].querySelector('h2')?.setAttribute('tabindex','-1');
   }
   window.spendSettingsOpen=open;
   const priorGo=window.go;
