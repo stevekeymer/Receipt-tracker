@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /features.html
+Disallow: /api/
+Disallow: /auth/
+Disallow: /rest/
+Disallow: /index.html
+Sitemap: https://spend.zerohours.ca/sitemap.xml
