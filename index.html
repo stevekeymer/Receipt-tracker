@@ -109,7 +109,7 @@ body.dark{color-scheme:dark;background:#161b2c;color:#edf3ff}
 <p class="note">The invited person signs in or signs up with this email, then accepts under Configure → Shared access. Automatic invitation emails are not available yet.</p>
 <div id="spendSharesList"></div>
 </div><p class="note">Expenses are stored in your account. Shared household access is available above. Receipt image cloud storage is not yet enabled. Two-factor authentication is optional and can be managed in Account & security.</p></div></section>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js"></script><script src="/offline.js?v=11"></script><script src="/sharing.js?v=10"></script><script src="/recycle.js"></script><script src="/mfa.js?v=1"></script><script src="/account.js?v=1"></script><script src="/billing.js?v=2"></script><script src="/trial.js?v=1"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js"></script><script src="/offline.js?v=11"></script><script src="/sharing.js?v=10"></script><script src="/recycle.js"></script><script src="/mfa.js?v=1"></script><script src="/account.js?v=1"></script><script src="/billing.js?v=2"></script><script src="/trial.js?v=4"></script><script>
 const sb=window.supabase.createClient('https://pbbqmedwddfmnlmnsxtx.supabase.co','sb_publishable_eNkrJqt7TAQnuffUXftOTg_OeibVV-Z');
 let currentUser=null,authMode='signin',recoveringOfflinePin=false;
 let expenseItems=[],draftItems=[],alertRules=[],spendingNotifications=[];
@@ -590,4 +590,4 @@ async function sendPendingAlertEmails(){
  }
 }
 function exportCSV(){let rows=[['Date','Merchant','Category','Amount CAD','Notes'],...filteredExpenses().map(e=>[e.date,e.merchant,e.category,e.amount,e.notes])];let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='zerohours-spend-expenses.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}render();
-</script></body></html>
+</script><script src="/install-prompt.js?v=4" defer></script></body></html>
