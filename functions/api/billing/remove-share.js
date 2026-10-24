@@ -9,13 +9,18 @@ export async function onRequestPost({request,env}){
   const share=rows[0];
   if(!share||(share.owner_id!==user.id&&share.member_id!==user.id))return reply({error:'Shared access not found.'},404);
   await rpc('spend_remove_share',{p_id:share_id},auth);
-  // The share has now been removed; reconcile every remaining sponsor and the former owner.
-  const owners=new Set([share.owner_id]);
-  if(share.member_id){
-   const changes=await reconcileMemberSponsors(env,share.member_id);
-   for(const change of changes)owners.delete(change.owner);
+  // Share removal must remain successful even if Stripe is temporarily unavailable.
+  try{
+   const owners=new Set([share.owner_id]);
+   if(share.member_id){
+    const changes=await reconcileMemberSponsors(env,share.member_id);
+    for(const change of changes)owners.delete(change.owner);
+   }
+   for(const owner of owners)await reconcileOwner(env,owner);
+   return reply({removed:true,billing_synced:true});
+  }catch(syncError){
+   console.error('Shared access removed, but hybrid seat reconciliation needs retry:',syncError);
+   return reply({removed:true,billing_synced:false,warning:'Shared access removed. Seat billing needs reconciliation.'});
   }
-  for(const owner of owners)await reconcileOwner(env,owner);
-  return reply({removed:true});
  }catch(e){return reply({error:e.message||'Unable to remove shared access.'},400)}
 }
