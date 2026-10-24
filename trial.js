@@ -57,6 +57,11 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)spendReval
 
 /* Load the Settings UI enhancement after the main dashboard has initialized. */
 document.addEventListener('DOMContentLoaded',()=>{
+ // Check for new versions on every app launch, not only when enabling push.
+ if('serviceWorker' in navigator){
+   navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'})
+     .then(reg=>reg.update()).catch(err=>console.warn('App update check unavailable',err));
+ }
  const script=document.createElement('script');
  script.src='/settings-ui.js?v=1';
  script.onerror=()=>console.warn('Settings UI enhancement unavailable; standard settings remain accessible.');
