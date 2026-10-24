@@ -30,10 +30,14 @@ async function spendLoadBilling(){
   document.getElementById('spendBillingCheckout').hidden=!!record&&['active','trialing'].includes(record.status);
   document.getElementById('spendBillingPortal').hidden=!record?.status||record.status==='inactive';
   document.getElementById('spendBillingSync').hidden=!record||!['active','trialing','past_due'].includes(record.status);
-  const {data:usage,error:usageError}=await sb.from('spend_ai_usage').select('status,actual_cad_cents,reserved_cad_cents,period_start').eq('user_id',currentUser.id).eq('period_start',new Date().toISOString().slice(0,7)+'-01');
-  if(!usageError){
-   const used=(usage||[]).reduce((sum,x)=>sum+(x.status==='reserved'?x.reserved_cad_cents:x.status==='completed'?x.actual_cad_cents:0),0);
-   document.getElementById('spendBillingAI').textContent='AI budget (across all accounts): $'+(used/100).toFixed(2)+' / $4.00 CAD this calendar month';
+  const {data:entitlement,error:entitlementError}=await sb.rpc('spend_my_entitlement');
+  if(!entitlementError&&entitlement){
+   const used=Number(entitlement.used_cents||0),limit=Number(entitlement.limit_cents||400);
+   const note=entitlement.status==='trialing'?'during your 7-day trial':'this calendar month';
+   document.getElementById('spendBillingAI').textContent='AI budget (across all accounts): $'+(used/100).toFixed(2)+' / $'+(limit/100).toFixed(2)+' CAD '+note;
+   if(entitlement.status==='trialing'&&entitlement.trial_end){
+    state.textContent+=' Free trial ends '+new Date(entitlement.trial_end).toLocaleString('en-CA')+'.';
+   }
   }
  }catch(e){spendBillingMessage('Unable to load billing: '+e.message,true)}
 }
