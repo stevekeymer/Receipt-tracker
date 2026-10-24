@@ -9,7 +9,7 @@ function activeSpendShare(){return spendShareRows.find(s=>s.account_id===activeS
 function canViewSpendExpenses(){return !!currentUser&&(!sharedSpendMode()||activeSpendShare()?.allow_view===true)}
 function canDeleteSpendExpense(){return !!currentUser&&(!sharedSpendMode()||(activeSpendShare()?.allow_view===true&&activeSpendShare()?.allow_delete===true))}
 function spendAccountName(id){return spendAccountRows.find(a=>a.id===id)?.name||'Expense account'}
-function spendPermissionLabel(s){return s.allow_delete?'View, add and delete':s.allow_view?'View and add':'Add only'}
+function spendPermissionLabel(s){return s.allow_delete?'View, add, edit and delete':s.allow_view?'View, add and edit':'Add only'}
 async function refreshSpendShares(){
  if(!currentUser||!navigator.onLine)return;
  const [{data:shares,error:shareError},{data:accounts,error:accountError}]=await Promise.all([
@@ -51,7 +51,7 @@ function renderSpendShares(){
  const ownedRows=owned.map(s=>{
   const level=s.allow_delete?'manage':s.allow_view?'view':'capture';
   return '<div class="row" style="flex-wrap:wrap;gap:12px"><div style="flex:1;min-width:180px"><strong>'+escapeHTML(s.invite_email)+'</strong><small>'+escapeHTML(spendAccountName(s.account_id))+' · '+(s.status==='pending'?'Invitation pending':'Active access')+'</small></div>'+
-  '<label style="font-size:13px">Permission<select aria-label="Permission for '+escapeHTML(s.invite_email)+'" onchange="setSpendAccess(\''+s.id+'\',this.value)" style="min-width:175px"><option value="capture"'+(level==='capture'?' selected':'')+'>Add only</option><option value="view"'+(level==='view'?' selected':'')+'>View and add</option><option value="manage"'+(level==='manage'?' selected':'')+'>View, add and delete</option></select></label>'+
+  '<label style="font-size:13px">Permission<select aria-label="Permission for '+escapeHTML(s.invite_email)+'" onchange="setSpendAccess(\''+s.id+'\',this.value)" style="min-width:175px"><option value="capture"'+(level==='capture'?' selected':'')+'>Add only</option><option value="view"'+(level==='view'?' selected':'')+'>View, add and edit</option><option value="manage"'+(level==='manage'?' selected':'')+'>View, add, edit and delete</option></select></label>'+
   '<button class="muted" type="button" onclick="removeSpendShare(\''+s.id+'\')">Remove</button></div>';
  }).join('');
  const pendingRows=pending.map(s=>'<div class="row" style="flex-wrap:wrap;gap:12px"><div style="flex:1"><strong>'+escapeHTML(spendAccountName(s.account_id))+'</strong><small>Permission: '+spendPermissionLabel(s)+'</small></div><button class="primary" type="button" onclick="acceptSpendShare(\''+s.id+'\')">Accept invitation</button></div>').join('');
