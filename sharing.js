@@ -39,6 +39,10 @@ function renderSpendShares(){
  select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
  const quick=document.getElementById('spendQuickAccountSelect');
  if(quick){quick.innerHTML=select.innerHTML;quick.value=select.value}
+ for(const id of ['spendScanAccountSelect','spendManualAccountSelect','spendTrackAccountSelect']){
+  const picker=document.getElementById(id);
+  if(picker){picker.innerHTML=select.innerHTML;picker.value=select.value}
+ }
  const captureLabel=document.getElementById('spendCaptureAccountLabel');
  if(captureLabel)captureLabel.textContent='Saving to: '+spendAccountName(activeSpendAccount())+(sharedSpendMode()?' (shared)':'');
  const inviteAccount=document.getElementById('spendInviteAccount');
@@ -104,9 +108,14 @@ async function removeSpendShare(id){
  await refreshSpendShares();
  if(sharedSpendMode())await loadCloudExpenses();
 }
-async function switchSpendWorkspace(value){
+async function switchSpendWorkspace(value,options={}){
  if(!currentUser)return;
  if(!navigator.onLine){alert('Switching accounts requires internet.');renderSpendShares();return}
+ const previous=activeSpendAccount(),wasShared=sharedSpendMode();
+ if(editingId&&value!==(wasShared?'shared:':'account:')+previous){
+  alert('Finish saving or cancel your edits before switching accounts.');renderSpendShares();return;
+ }
+ const currentView=document.querySelector('.view.active')?.id||'home';
  if(value.startsWith('account:')){
   const account=value.slice(8);
   const found=spendAccountRows.find(a=>a.id===account&&a.owner_id===currentUser.id);
@@ -119,10 +128,18 @@ async function switchSpendWorkspace(value){
   if(!found||!share){alert('Shared access is no longer available.');renderSpendShares();return}
   spendWorkspaceOwner=found.owner_id;spendSharedAccountId=account;
  }else{return}
- editingId=null;draftItems=[];renderItemEditor();
- document.getElementById('expenseForm').reset();
- document.getElementById('expenseDetails').style.display='none';
- await loadCloudExpenses();renderSpendShares();go('home');
+ const changed=previous!==activeSpendAccount()||wasShared!==sharedSpendMode();
+ if(changed){
+  document.getElementById('expenseDetails').style.display='none';
+  await loadCloudExpenses();
+ }
+ renderSpendShares();
+ const target=options.stayOnPage?currentView:'home';
+ if(target==='track'&&!canViewSpendExpenses()){
+  alert('This shared account allows adding expenses only. Its transaction history is private.');
+  go('manual');
+ }else if(!options.stayOnPage)go('home');
+ else if(target==='track')render();
 }
 function renderSpendAccountManager(){
  const list=document.getElementById('spendAccountManager');
