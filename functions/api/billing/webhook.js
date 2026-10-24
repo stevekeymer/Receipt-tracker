@@ -23,9 +23,17 @@ async function updateSubscription(env,sub,owner){
   owner_id:owner,stripe_customer_id:typeof sub.customer==='string'?sub.customer:sub.customer?.id,
   stripe_subscription_id:sub.id,stripe_price_id:TEST_PRICE,
   status:sub.status,seats:item.quantity||1,
+  trial_start:toDate(sub.trial_start),trial_end:toDate(sub.trial_end),
   current_period_start:toDate(periodStart),current_period_end:toDate(periodEnd),
   cancel_at_period_end:!!sub.cancel_at_period_end,environment:'test',updated_at:new Date().toISOString()
  });
+ if(sub.trial_start&&sub.trial_end){
+  const res=await fetch('https://pbbqmedwddfmnlmnsxtx.supabase.co/rest/v1/spend_trial_history?on_conflict=user_id',{
+   method:'POST',headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY,'content-type':'application/json',prefer:'resolution=ignore-duplicates,return=minimal'},
+   body:JSON.stringify({user_id:owner,stripe_subscription_id:sub.id,activated_at:toDate(sub.trial_start),trial_end:toDate(sub.trial_end)})
+  });
+  if(!res.ok)throw Error('Could not record trial activation ('+res.status+').');
+ }
 }
 export async function onRequestPost({request,env}){
  if(!env.STRIPE_WEBHOOK_SECRET||!env.SUPABASE_SERVICE_ROLE_KEY||!env.STRIPE_SECRET_KEY?.startsWith('sk_test_'))return reply({error:'Test billing webhook not configured.'},503);
