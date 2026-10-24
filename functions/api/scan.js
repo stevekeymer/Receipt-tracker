@@ -10,10 +10,10 @@ export async function onRequestPost({request,env}){
   const validImage=typeof image==="string"&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image)&&image.length<=6500000;
   const validPdf=typeof document==="string"&&/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(document)&&document.length<=6500000;
   if(!validImage&&!validPdf)return json({error:"Choose a JPEG, PNG, WebP or PDF file under 4.5 MB."},400);
-  // Metering is opt-in for the TEST integration; production scans remain unchanged until launch approval.
-  const meterEnabled=env.BILLING_TEST_ENABLED==='true';
+  // Mandatory server-side AI metering: no scan without an active test trial or paid entitlement.
+  const meterEnabled=true;
   const requestId=crypto.randomUUID();
-  const reserveCents=validPdf?200:100; // Conservative in-flight hold: $2/PDF or $1/image.
+  const reserveCents=100; // $1 conservative in-flight hold per scan; also permits trial PDF scans.
   const authHeader=auth;
   let reserved=false;
   const sbUrl="https://pbbqmedwddfmnlmnsxtx.supabase.co/rest/v1/rpc/";
@@ -24,7 +24,7 @@ export async function onRequestPost({request,env}){
     const reserve=await fetch(sbUrl+"spend_reserve_ai_scan",{method:"POST",headers:{apikey:publicKey,authorization:authHeader,"content-type":"application/json"},body:JSON.stringify({p_request_id:requestId,p_account_id:payload.account_id,p_reserve_cents:reserveCents})});
     const budget=await reserve.json().catch(()=>({}));
     if(!reserve.ok)return json({error:budget.message||"Unable to check AI allowance."},403);
-    if(!budget.allowed)return json({error:budget.reason==="monthly_ai_limit"?"Monthly AI allowance reached. Manual entry is still available.":"A paid test subscription is required for AI scanning in billing test mode.",remaining_cents:budget.remaining_cents||0},budget.reason==="monthly_ai_limit"?429:402);
+    if(!budget.allowed)return json({error:budget.reason==="monthly_ai_limit"?"Monthly AI allowance reached. Manual entry is still available.":"An active 7-day trial or subscription is required for AI scanning.",remaining_cents:budget.remaining_cents||0},budget.reason==="monthly_ai_limit"?429:402);
     reserved=true;
   }
   async function finishMetering(status,usage={}){
