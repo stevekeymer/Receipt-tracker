@@ -82,3 +82,9 @@ export async function reconcileMemberSponsors(env,member){
  for(const owner of owners)result.push(await reconcileOwner(env,owner));
  return result;
 }
+
+export async function reconcileOwnerMemberSponsors(env,owner){
+ const shares=await serviceRead(env,'spend_shares','owner_id=eq.'+encodeURIComponent(owner)+'&status=eq.active','member_id');
+ const members=[...new Set(shares.map(s=>s.member_id).filter(Boolean))];
+ for(const member of members)await reconcileMemberSponsors(env,member);
+}
