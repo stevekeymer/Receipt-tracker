@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  script.onerror=()=>console.warn('Settings UI enhancement unavailable; standard settings remain accessible.');
  document.body.appendChild(script);
  const installScript=document.createElement('script');
- installScript.src='/install-prompt.js?v=2';
+ installScript.src='/install-prompt.js?v=3';
  document.body.appendChild(installScript);
  const productScript=document.createElement('script');
  productScript.src='/product-ui.js?v=2';
