@@ -54,3 +54,11 @@ async function spendRevalidateAccess(){
 }
 setInterval(spendRevalidateAccess,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)spendRevalidateAccess()});
+
+/* Load the Settings UI enhancement after the main dashboard has initialized. */
+document.addEventListener('DOMContentLoaded',()=>{
+ const script=document.createElement('script');
+ script.src='/settings-ui.js?v=1';
+ script.onerror=()=>console.warn('Settings UI enhancement unavailable; standard settings remain accessible.');
+ document.body.appendChild(script);
+});
