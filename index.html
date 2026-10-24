@@ -40,7 +40,7 @@ body.dark{color-scheme:dark;background:#161b2c;color:#edf3ff}
 <div id="spendActiveAccountBar" class="panel" style="padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
 <div style="flex:1;min-width:140px"><strong style="display:block;font-size:14px">Expense account</strong><small id="spendAccountContext" style="color:#78849a">Choose which account you are working in</small></div>
 <select id="spendQuickAccountSelect" aria-label="Current expense account" onchange="switchSpendWorkspace(this.value,{stayOnPage:true})" style="flex:1;min-width:190px;max-width:360px;margin:0"></select>
-<button type="button" class="muted" onclick="go('configure')" style="white-space:nowrap">Manage sharing</button>
+<button type="button" class="muted" onclick="openSpendSharing()" style="white-space:nowrap">Manage sharing</button>
 </div>
 <section id="home" class="view active"><div class="intro"><div class="eyebrow">YOUR PERSONAL FINANCE SPACE</div><h1>Good to see you 👋</h1><p>What would you like to do today?</p></div>
 <div class="tiles"><button class="tile" onclick="go('scan')"><span class="symbol purple">📷</span><strong>Scan receipt</strong><small>Capture an expense</small></button><button class="tile" onclick="go('manual')"><span class="symbol green">✎</span><strong>Enter manually</strong><small>Add expense details</small></button><button class="tile" onclick="go('track')"><span class="symbol blue">▥</span><strong>Track expenses</strong><small>Explore your spending</small></button><button class="tile" onclick="go('alerts')"><span class="symbol orange">🔔</span><strong>Alerts & limits</strong><small>Customize spending alerts</small></button><button class="tile" onclick="go('configure')"><span class="symbol orange">⚙</span><strong>Configure</strong><small>Personalize your space</small></button></div>
@@ -88,7 +88,7 @@ body.dark{color-scheme:dark;background:#161b2c;color:#edf3ff}
 <div class="toolbar"><input id="newSpendAccountName" type="text" maxlength="80" placeholder="e.g. Household or Business" aria-label="New expense account name" style="max-width:320px"><button class="primary" type="button" onclick="createSpendAccount()">+ Create account</button></div>
 <div id="spendAccountManager"></div></div>
 
-<div class="panel" style="max-width:none;margin:18px 0">
+<div id="spendSharingSection" class="panel" style="max-width:none;margin:18px 0;scroll-margin-top:24px">
 <h3>Share an expense account</h3><p class="note">Invite someone to one account only. They use their own login and cannot access your other accounts unless you share those separately.</p>
 <div class="formgrid">
 <div class="field"><label for="spendInviteAccount">Account to share</label><select id="spendInviteAccount"></select></div>
@@ -276,6 +276,11 @@ async function restoreAuth(){try{
  }catch(e){const lock=await spendOffline.account();if(!navigator.onLine&&lock)showPinGate();else gate.style.display='grid'}}
 restoreAuth();
 const defaults=['Groceries','Dining','Transport','Shopping','Bills','Health','Entertainment','Other'];const key='zerohours-spend-expenses-v1';let expenses=[];let categories=JSON.parse(localStorage.getItem('zerohours-spend-categories')||'null')||defaults;let photo=null;const money=n=>new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD'}).format(n);document.getElementById('date').value=new Date().toLocaleDateString('en-CA');if(localStorage.getItem('zerohours-spend-theme')==='dark'){document.body.classList.add('dark');document.getElementById('theme').checked=true}
+function openSpendSharing(){
+ go('configure');
+ const target=document.getElementById('spendSharingSection');
+ if(target)requestAnimationFrame(()=>target.scrollIntoView({behavior:'smooth',block:'start'}));
+}
 function go(id){const captureNote=document.getElementById('spendCaptureAccountLabel');if(id==='manual'&&captureNote&&!captureNote.textContent.startsWith('Saved!'))captureNote.style.display='none';document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));if(id==='track'||id==='home')render();if((id==='track'||id==='recycle')&&sharedSpendMode()&&!canViewSpendExpenses()){alert('This shared account allows capturing expenses only. Transaction history is private.');id='manual';document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));}if(id==='recycle')loadSpendRecycleBin();if(id==='configure'){renderCategories();if(currentUser){spendLoadProfile();if(navigator.onLine){refreshSpendShares();spendMfaRefreshSettings();spendLoadBilling()}}}if(typeof updateSpendAccountContext==='function')updateSpendAccountContext(id);if(id==='alerts'){document.getElementById('alertRuleForm').style.display=sharedSpendMode()?'none':'';toggleAlertTarget();renderAlertRules();renderNotifications();updateSpendPushStatus();}window.scrollTo(0,0)}
 function fillCategories(){const entry=document.getElementById('category'),filter=document.getElementById('filterCategory'),selected=entry.value,selectedFilter=filter.value;entry.innerHTML=categories.map(c=>'<option>'+escapeHTML(c)+'</option>').join('');filter.innerHTML='<option value="">All categories</option>'+categories.map(c=>'<option>'+escapeHTML(c)+'</option>').join('');if(categories.includes(selected))entry.value=selected;filter.value=selectedFilter;populateAlertCategories()}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
