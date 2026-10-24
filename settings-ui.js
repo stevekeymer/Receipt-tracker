@@ -126,8 +126,13 @@
   function open(id){
     home.hidden=!!id;
     for(const g of groups)pages[g.id].hidden=g.id!==id;
-    root.querySelector('.back')?.setAttribute('aria-label',id?'Back to dashboard':'Back to dashboard');
-    window.scrollTo({top:0,behavior:'instant'});
+    const dashboardBack=root.querySelector(':scope > .back');
+    if(dashboardBack){
+      dashboardBack.textContent=id?'← All settings':'← Back to dashboard';
+      dashboardBack.onclick=id?()=>open(null):()=>window.go('home');
+    }
+    window.scrollTo(0,0);
+    if(id)pages[id].querySelector('h2')?.setAttribute('tabindex','-1');
   }
   window.spendSettingsOpen=open;
   const priorGo=window.go;
@@ -164,7 +169,7 @@
       else b.removeAttribute('aria-current');
     }
   }
-  updateNav('home');
+  updateNav(document.querySelector('.view.active')?.id||'home');
   // Preserve the original Settings access points, but use familiar wording.
   for(const tile of document.querySelectorAll('#home .tile')){
     if(tile.getAttribute('onclick')==="go('configure')"){
