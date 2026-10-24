@@ -39,7 +39,7 @@
 <p class="note">The invited person signs in or signs up with this email, then accepts under Configure → Shared access. Automatic invitation emails are not available yet.</p>
 <div id="spendSharesList"></div>
 </div><div class="row"><div><strong>Encrypted offline access</strong><small id="offlinePinStatus">Set a PIN to unlock expenses without internet</small><small style="display:block;margin-top:5px">Optional: this PIN is only for offline use on this device. It is not required when signing in online with your email and password.</small></div><button class="muted" id="offlinePinSetupButton" onclick="configureOfflinePin()">Set up PIN</button><button class="muted" id="offlinePinDisableButton" style="display:none" onclick="disableOfflinePin()">Disable PIN</button></div><div class="row"><div><strong>Signed in as</strong><small id="signedInEmail"></small></div><button class="muted" onclick="signOut()">Sign out</button></div><div class="row"><div><strong>Account management</strong><small>Profile and sign-in settings</small></div><span class="pill">Coming soon</span></div><div class="row"><div><strong>Share account</strong><small>Invite members, manage access and deletion permissions in Shared access above</small></div><span class="pill">Available</span></div><div class="row"><div><strong>Two-factor authentication</strong><small>Extra sign-in protection</small></div><span class="pill">Coming soon</span></div><p class="note">Expenses are stored in your account. Shared household access is available above. Receipt image cloud storage and 2FA enrollment are not yet enabled.</p></div></section>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js"></script><script src="/offline.js?v=11"></script><script src="/sharing.js?v=3"></script><script src="/recycle.js"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js"></script><script src="/offline.js?v=11"></script><script src="/sharing.js?v=4"></script><script src="/recycle.js"></script><script>
 const sb=window.supabase.createClient('https://pbbqmedwddfmnlmnsxtx.supabase.co','sb_publishable_eNkrJqt7TAQnuffUXftOTg_OeibVV-Z');
 let currentUser=null,authMode='signin',recoveringOfflinePin=false;
 let expenseItems=[],draftItems=[],alertRules=[],spendingNotifications=[];
@@ -128,7 +128,7 @@ async function authenticated(user){if(passwordRecoveryActive){switchAuth('newpas
  if(!currentUser)return;
  const userId=currentUser.id,ownerId=activeSpendOwner(),isShared=ownerId!==userId;
  if((isShared||!isPersonalSpendAccount())&&!navigator.onLine){alert('This account requires internet. Switching to Personal expenses.');spendWorkspaceOwner=userId;spendActiveAccountId=personalSpendAccount(userId)?.id;return loadCloudExpenses()}
- if(isShared&&!canViewSpendExpenses()){expenses=[];expenseItems=[];render();renderSpendShares();return}
+ if(isShared&&!canViewSpendExpenses()){expenses=[];expenseItems=[];alertRules=[];spendingNotifications=[];updateNotificationBadge();renderNotifications();render();renderSpendShares();return}
  if(!isShared&&isPersonalSpendAccount()&&navigator.onLine&&spendOffline.ready(userId))await spendOffline.sync(sb,userId);
  const {data,error}=navigator.onLine?await sb.from('expenses').select('id,user_id,merchant,amount,spent_on,category,notes,created_at').eq('user_id',ownerId).eq('account_id',activeSpendAccount()).is('deleted_at',null).order('spent_on',{ascending:false}):{data:null,error:{message:'offline'}};
  if(!error){
