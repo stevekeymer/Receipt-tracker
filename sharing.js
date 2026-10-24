@@ -106,8 +106,27 @@ async function inviteSpendShare(){
  const permission=document.getElementById('spendInvitePermission').value;
  if(!account||!email){alert('Choose an account and enter an email address.');return}
  if(!spendAccountRows.some(a=>a.id===account&&a.owner_id===currentUser?.id)){alert('Select one of your accounts.');return}
+ // Verify the actual authenticated identity, not only potentially stale page state.
+ const {data:identity,error:identityError}=await sb.auth.getUser();
+ if(identityError||!identity?.user){alert('Your session has expired. Please sign in again before inviting someone.');return}
+ if(identity.user.id!==currentUser.id){
+  alert('The signed-in account changed. Refresh ZeroHours Spend and select an account you own before inviting someone.');
+  return;
+ }
+ const {data:owned,error:ownershipError}=await sb.from('expense_accounts').select('id,name').eq('id',account).eq('owner_id',identity.user.id).maybeSingle();
+ if(ownershipError||!owned){
+  await refreshSpendShares();
+  alert('This expense account is not owned by your current login. Please check the signed-in email and select one of your own accounts. If this is unexpected, sign out and back in.');
+  return;
+ }
  const {error}=await sb.rpc('spend_invite_account',{p_account:account,p_email:email,p_allow_view:permission!=='capture',p_allow_delete:permission==='manage'});
- if(error){alert('Invitation failed: '+error.message);return}
+ if(error){
+  if(error.message?.includes('do not own')){
+   await refreshSpendShares();
+   alert('The server could not verify ownership for this login. Sign out and back in, then try again. If it continues, please report this message.');
+  }else alert('Invitation failed: '+error.message);
+  return;
+ }
  document.getElementById('spendInviteEmail').value='';
  await refreshSpendShares();
  alert('Invitation ready for '+email+'. Ask them to sign in with that address and accept '+spendAccountName(account)+' under Configure → Shared access. Invitations are not emailed automatically yet.');
