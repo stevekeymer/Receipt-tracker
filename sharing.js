@@ -29,7 +29,7 @@ async function refreshSpendShares(){
  if(typeof render==='function')render();
 }
 function renderSpendShares(){
- const select=document.getElementById('spendWorkspaceSelect'),list=document.getElementById('spendSharesList');
+ const select=document.getElementById('spendQuickAccountSelect'),list=document.getElementById('spendSharesList');
  if(!select||!list||!currentUser)return;
  const ownedAccounts=spendAccountRows.filter(a=>a.owner_id===currentUser.id);
  const incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active'&&spendAccountRows.some(a=>a.id===s.account_id));
@@ -37,14 +37,7 @@ function renderSpendShares(){
  const sharedOptions=incoming.map(s=>'<option value="shared:'+s.account_id+'">Shared with me · '+escapeHTML(spendAccountName(s.account_id))+'</option>').join('');
  select.innerHTML='<optgroup label="My accounts">'+ownOptions+'</optgroup>'+(incoming.length?'<optgroup label="Shared with me">'+sharedOptions+'</optgroup>':'');
  select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
- const quick=document.getElementById('spendQuickAccountSelect');
- if(quick){quick.innerHTML=select.innerHTML;quick.value=select.value}
- for(const id of ['spendScanAccountSelect','spendManualAccountSelect','spendTrackAccountSelect']){
-  const picker=document.getElementById(id);
-  if(picker){picker.innerHTML=select.innerHTML;picker.value=select.value}
- }
- const captureLabel=document.getElementById('spendCaptureAccountLabel');
- if(captureLabel)captureLabel.textContent='Saving to: '+spendAccountName(activeSpendAccount())+(sharedSpendMode()?' (shared)':'');
+ updateSpendAccountContext();
  const inviteAccount=document.getElementById('spendInviteAccount');
  if(inviteAccount){
   const previous=inviteAccount.value;
@@ -67,10 +60,17 @@ function renderSpendShares(){
  list.innerHTML=heading('People you invited')+(ownedRows||'<p class="note">No invitations yet. Choose an account and invite someone above.</p>')+
  heading('Invitations waiting for you')+(pendingRows||'<p class="note">No pending invitations.</p>')+
  (incoming.length?heading('Accounts shared with you')+incomingRows:'');
- const note=document.getElementById('spendWorkspaceNote');
- if(note)note.textContent=sharedSpendMode()?
-  ('Shared account · '+spendPermissionLabel(activeSpendShare()||{allow_view:false,allow_delete:false})+' · Online only'):
-  ('Your '+spendAccountName(activeSpendAccount())+' account · '+(isPersonalSpendAccount()?'Offline PIN available':'Online only'));
+
+}
+function updateSpendAccountContext(view){
+ const note=document.getElementById('spendAccountContext');
+ if(!note||!currentUser)return;
+ const active=view||document.querySelector('.view.active')?.id||'home';
+ const context=active==='scan'||active==='manual'?'New expenses will be saved here':
+  active==='track'?'Showing transactions for this account':
+  active==='alerts'?'Spending alerts for this account':
+  active==='configure'?'Manage accounts and sharing below':'Your selected account';
+ note.textContent=context+(sharedSpendMode()?' · Shared'+(canViewSpendExpenses()?'':' · Add only'):'');
 }
 async function inviteSpendShare(){
  if(!navigator.onLine){alert('Connect to send an invitation.');return}
@@ -135,6 +135,7 @@ async function switchSpendWorkspace(value,options={}){
  }
  renderSpendShares();
  const target=options.stayOnPage?currentView:'home';
+ if(changed){const note=document.getElementById('spendCaptureAccountLabel');if(note){note.textContent='';note.style.display='none'}}
  if(target==='track'&&!canViewSpendExpenses()){
   alert('This shared account allows adding expenses only. Its transaction history is private.');
   go('manual');
