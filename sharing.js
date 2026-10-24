@@ -1,5 +1,8 @@
 /* Household sharing: online-only workspace switching, invite management. */
-let spendWorkspaceOwner=null,spendShareRows=[];
+let spendWorkspaceOwner=null,spendShareRows=[],spendAccountRows=[],spendActiveAccountId=null;
+function personalSpendAccount(owner){return spendAccountRows.find(a=>a.owner_id===owner&&a.is_default)}
+function activeSpendAccount(){return sharedSpendMode()?personalSpendAccount(activeSpendOwner())?.id:(spendActiveAccountId||personalSpendAccount(currentUser?.id)?.id)}
+function isPersonalSpendAccount(){return !sharedSpendMode()&&activeSpendAccount()===personalSpendAccount(currentUser?.id)?.id}
 function activeSpendOwner(){return spendWorkspaceOwner||currentUser?.id}
 function sharedSpendMode(){return !!currentUser&&activeSpendOwner()!==currentUser.id}
 function canViewSpendExpenses(){if(!currentUser)return false;if(!sharedSpendMode())return true;return spendShareRows.some(s=>s.owner_id===activeSpendOwner()&&s.member_id===currentUser.id&&s.status==='active'&&s.allow_view===true)}
@@ -9,6 +12,10 @@ async function refreshSpendShares(){
  const {data,error}=await sb.from('spend_shares').select('id,owner_id,member_id,invite_email,status,allow_view,allow_delete,created_at').order('created_at',{ascending:false});
  if(error){console.warn('Unable to load household access',error);return}
  spendShareRows=data||[];
+ const {data:accounts,error:accountError}=await sb.from('expense_accounts').select('id,owner_id,name,is_default,created_at').order('created_at');
+ if(accountError){console.warn('Unable to load expense accounts',accountError);return}
+ spendAccountRows=accounts||[];
+ if(!spendActiveAccountId||!spendAccountRows.some(a=>a.id===spendActiveAccountId&&a.owner_id===currentUser.id))spendActiveAccountId=personalSpendAccount(currentUser.id)?.id||null;
  if(sharedSpendMode()&&!spendShareRows.some(s=>s.owner_id===spendWorkspaceOwner&&s.member_id===currentUser.id&&s.status==='active'))spendWorkspaceOwner=currentUser.id;
  if(sharedSpendMode()&&!canViewSpendExpenses()){expenses=[];expenseItems=[];document.getElementById('expenseDetails').style.display='none';}
  renderSpendShares();if(typeof render==='function')render();
@@ -17,8 +24,9 @@ function renderSpendShares(){
  const select=document.getElementById('spendWorkspaceSelect'),list=document.getElementById('spendSharesList');
  if(!select||!list||!currentUser)return;
  const owner=activeSpendOwner(),incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active');
- select.innerHTML='<option value="'+currentUser.id+'">My expenses</option>'+incoming.map(s=>'<option value="'+s.owner_id+'">Shared account · '+escapeHTML(s.invite_email)+'</option>').join('');
- select.value=owner;
+ select.innerHTML=spendAccountRows.filter(a=>a.owner_id===currentUser.id).map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Personal':'')+'</option>').join('')+incoming.map(s=>'<option value="shared:'+s.owner_id+'">Shared · '+escapeHTML(personalSpendAccount(s.owner_id)?.name||'Personal')+'</option>').join('');
+ select.value=sharedSpendMode()?'shared:'+owner:'account:'+activeSpendAccount();
+ renderSpendAccountManager();
  const owned=spendShareRows.filter(s=>s.owner_id===currentUser.id);
  const pending=spendShareRows.filter(s=>s.status==='pending'&&s.owner_id!==currentUser.id);
  list.innerHTML='<h4>People you invited</h4>'+(owned.map(s=>
@@ -29,7 +37,7 @@ function renderSpendShares(){
  ).join('')||'<p>No invitations yet.</p>')+
  '<h4>Invitations for you</h4>'+(pending.map(s=>'<div class="row"><span>Household invitation · '+(s.allow_view?'Can view expenses':'Capture only')+'</span><button class="primary" onclick="acceptSpendShare(\''+s.id+'\')">Accept</button></div>').join('')||'<p>No pending invitations.</p>')+
  (incoming.length?'<h4>Accounts shared with you</h4>'+incoming.map(s=>'<div class="row"><span>Shared household · '+(s.allow_view?'View and capture':'Capture only')+'</span><button class="muted" onclick="removeSpendShare(\''+s.id+'\')">Leave</button></div>').join(''):'');
- const note=document.getElementById('spendWorkspaceNote');if(note)note.textContent=sharedSpendMode()?'Shared household: online only. '+(!canViewSpendExpenses()?'Capture only — you cannot view household transactions.':(canDeleteSpendExpense()?'You can view and delete expenses.':'You can view expenses, but not delete them.')):'Personal expenses. Offline PIN applies only to this account.';
+ const note=document.getElementById('spendWorkspaceNote');if(note)note.textContent=sharedSpendMode()?'Shared household: online only. '+(!canViewSpendExpenses()?'Capture only — you cannot view household transactions.':(canDeleteSpendExpense()?'You can view and delete expenses.':'You can view expenses, but not delete them.')):'Your '+(spendAccountRows.find(a=>a.id===activeSpendAccount())?.name||'Personal')+' expenses. '+(isPersonalSpendAccount()?'Offline PIN is available for Personal.':'Additional accounts require internet.')+';';
 }
 async function inviteSpendShare(){
  if(!navigator.onLine){alert('Connect to invite someone.');return}
@@ -60,13 +68,51 @@ async function removeSpendShare(id){
  const {error}=await sb.rpc('spend_remove_share',{p_id:id});if(error){alert(error.message);return}
  await refreshSpendShares();await loadCloudExpenses();
 }
-async function switchSpendWorkspace(owner){
+async function switchSpendWorkspace(value){
  if(!currentUser)return;
- if(owner!==currentUser.id&&!navigator.onLine){alert('Shared households require an internet connection.');renderSpendShares();return}
- if(owner!==currentUser.id&&!spendShareRows.some(s=>s.owner_id===owner&&s.member_id===currentUser.id&&s.status==='active')){alert('Shared access is no longer available.');renderSpendShares();return}
- spendWorkspaceOwner=owner;
+ if(!navigator.onLine){alert('Switching expense accounts requires an internet connection.');renderSpendShares();return}
+ if(value.startsWith('account:')){
+  const account=value.slice(8);
+  if(!spendAccountRows.some(a=>a.id===account&&a.owner_id===currentUser.id)){alert('Account not found.');renderSpendShares();return}
+  spendWorkspaceOwner=currentUser.id;spendActiveAccountId=account;
+ }else if(value.startsWith('shared:')){
+  const owner=value.slice(7);
+  if(!spendShareRows.some(s=>s.owner_id===owner&&s.member_id===currentUser.id&&s.status==='active')){alert('Shared access is no longer available.');renderSpendShares();return}
+  spendWorkspaceOwner=owner;
+ }else{return}
  editingId=null;draftItems=[];renderItemEditor();
  document.getElementById('expenseForm').reset();
  document.getElementById('expenseDetails').style.display='none';
  await loadCloudExpenses();renderSpendShares();go('home');
+}
+function renderSpendAccountManager(){
+ const list=document.getElementById('spendAccountManager');
+ if(!list||!currentUser)return;
+ const owned=spendAccountRows.filter(a=>a.owner_id===currentUser.id);
+ list.innerHTML=owned.map(a=>'<div class="row"><div><strong>'+escapeHTML(a.name)+'</strong><small>'+(a.is_default?'Default account · cannot be deleted':'Separate expenses and budgets')+'</small></div><div class="toolbar"><button class="muted" type="button" onclick="renameSpendAccount(\''+a.id+'\')">Rename</button>'+(a.is_default?'':'<button class="muted" type="button" onclick="deleteSpendAccount(\''+a.id+'\')">Delete</button>')+'</div></div>').join('');
+}
+async function createSpendAccount(){
+ if(!currentUser||!navigator.onLine){alert('Connect to create an account.');return}
+ const input=document.getElementById('newSpendAccountName'),name=input.value.trim();
+ if(!name||name.length>80){alert('Enter an account name of 1–80 characters.');return}
+ const {data,error}=await sb.from('expense_accounts').insert({owner_id:currentUser.id,name,is_default:false}).select('id').single();
+ if(error){alert('Unable to create account: '+error.message);return}
+ input.value='';await refreshSpendShares();await switchSpendWorkspace('account:'+data.id);
+}
+async function renameSpendAccount(id){
+ const account=spendAccountRows.find(a=>a.id===id&&a.owner_id===currentUser.id);if(!account)return;
+ const name=prompt('New account name',account.name)?.trim();
+ if(!name||name===account.name)return;
+ if(name.length>80){alert('Account name must be 80 characters or fewer.');return}
+ const {error}=await sb.from('expense_accounts').update({name}).eq('id',id).eq('owner_id',currentUser.id);
+ if(error)alert('Unable to rename account: '+error.message);
+ await refreshSpendShares();
+}
+async function deleteSpendAccount(id){
+ const account=spendAccountRows.find(a=>a.id===id&&a.owner_id===currentUser.id&&!a.is_default);if(!account)return;
+ if(!confirm('Delete the empty account "'+account.name+'"? Accounts with expenses or spending alerts cannot be deleted.'))return;
+ const {error}=await sb.from('expense_accounts').delete().eq('id',id).eq('owner_id',currentUser.id);
+ if(error){alert('Account cannot be deleted until its expenses and alert rules have been removed. '+error.message);return}
+ spendActiveAccountId=personalSpendAccount(currentUser.id)?.id;
+ await refreshSpendShares();await loadCloudExpenses();
 }
