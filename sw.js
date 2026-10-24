@@ -1,6 +1,6 @@
 /* ZeroHours Spend offline shell. Fresh code online, cached shell offline. */
-const CACHE='zh-spend-shell-v26';
-const SHELL=['/','/index.html','/manifest.webmanifest','/offline.js','/sharing.js','/recycle.js','/mfa.js','/account.js','/billing.js','/trial.js','/settings-ui.js','/assets/spend-icon.svg','/assets/spend-icon.png','/assets/spend-logo.svg'];
+const CACHE='zh-spend-shell-v27';
+const SHELL=['/','/index.html','/manifest.webmanifest','/offline.js','/sharing.js','/recycle.js','/mfa.js','/account.js','/billing.js','/trial.js','/settings-ui.js','/product-ui.js','/assets/spend-icon.svg','/assets/spend-icon.png','/assets/spend-logo.svg'];
 const SUPABASE_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js';
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE);
