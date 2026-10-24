@@ -3,9 +3,10 @@
  'use strict';
  const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  if(standalone())return;
+ const force=new URLSearchParams(location.search).has('install');
  const key='zh-spend-install-dismissed-at';
  const waitDays=14;
- try{if(Date.now()-Number(localStorage.getItem(key)||0)<waitDays*86400000)return}catch{}
+ if(!force){try{if(Date.now()-Number(localStorage.getItem(key)||0)<waitDays*86400000)return}catch{}}
  const ua=navigator.userAgent||'';
  const ios=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1);
  const safari=/Safari/i.test(ua)&&!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
@@ -36,7 +37,7 @@
  function show(){
   if(shown||standalone()||document.getElementById('zhInstallBanner'))return;
   // iOS other browsers may offer Share > Add to Home Screen as well.
-  if(!ios&&!deferred)return;
+  if(!ios&&!deferred&&!force)return;
   shown=true;
   const banner=document.createElement('aside');
   banner.id='zhInstallBanner';
@@ -67,7 +68,7 @@
  window.addEventListener('appinstalled',dismiss);
  // This script is injected after DOMContentLoaded by trial.js.
  // Run immediately when the document is already interactive/complete.
- const schedule=()=>{if(ios)setTimeout(show,4500)};
+ const schedule=()=>{if(ios||force)setTimeout(show,force?500:4500)};
  if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',schedule,{once:true});
  }else{
