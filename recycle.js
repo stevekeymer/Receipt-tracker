@@ -11,7 +11,7 @@ async function loadSpendRecycleBin(){
  list.innerHTML='<p>Loading deleted expenses…</p>';
  const {data,error}=await sb.from('expenses')
   .select('id,user_id,merchant,amount,spent_on,category,deleted_at')
-  .eq('user_id',activeSpendOwner()).not('deleted_at','is',null)
+  .eq('user_id',activeSpendOwner()).eq('account_id',activeSpendAccount()).not('deleted_at','is',null)
   .gt('deleted_at',new Date(Date.now()-30*86400000).toISOString())
   .order('deleted_at',{ascending:false});
  if(error){list.textContent='Unable to load recycle bin: '+error.message;return}
