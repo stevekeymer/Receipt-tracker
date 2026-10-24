@@ -1,84 +1,119 @@
-/* Household sharing: online-only workspace switching, invite management. */
-let spendWorkspaceOwner=null,spendShareRows=[],spendAccountRows=[],spendActiveAccountId=null;
+/* ZeroHours Spend — account-specific sharing. Online-only for shared accounts. */
+let spendWorkspaceOwner=null,spendShareRows=[],spendAccountRows=[],spendActiveAccountId=null,spendSharedAccountId=null;
 function personalSpendAccount(owner){return spendAccountRows.find(a=>a.owner_id===owner&&a.is_default)}
-function activeSpendAccount(){return sharedSpendMode()?personalSpendAccount(activeSpendOwner())?.id:(spendActiveAccountId||personalSpendAccount(currentUser?.id)?.id)}
-function isPersonalSpendAccount(){return !sharedSpendMode()&&activeSpendAccount()===personalSpendAccount(currentUser?.id)?.id}
 function activeSpendOwner(){return spendWorkspaceOwner||currentUser?.id}
 function sharedSpendMode(){return !!currentUser&&activeSpendOwner()!==currentUser.id}
-function canViewSpendExpenses(){if(!currentUser)return false;if(!sharedSpendMode())return true;return spendShareRows.some(s=>s.owner_id===activeSpendOwner()&&s.member_id===currentUser.id&&s.status==='active'&&s.allow_view===true)}
-function canDeleteSpendExpense(){if(!currentUser)return false;if(!sharedSpendMode())return true;return spendShareRows.some(s=>s.owner_id===activeSpendOwner()&&s.member_id===currentUser.id&&s.status==='active'&&s.allow_view===true&&s.allow_delete===true)}
+function activeSpendAccount(){return sharedSpendMode()?spendSharedAccountId:(spendActiveAccountId||personalSpendAccount(currentUser?.id)?.id)}
+function isPersonalSpendAccount(){return !sharedSpendMode()&&activeSpendAccount()===personalSpendAccount(currentUser?.id)?.id}
+function activeSpendShare(){return spendShareRows.find(s=>s.account_id===activeSpendAccount()&&s.member_id===currentUser?.id&&s.status==='active')}
+function canViewSpendExpenses(){return !!currentUser&&(!sharedSpendMode()||activeSpendShare()?.allow_view===true)}
+function canDeleteSpendExpense(){return !!currentUser&&(!sharedSpendMode()||(activeSpendShare()?.allow_view===true&&activeSpendShare()?.allow_delete===true))}
+function spendAccountName(id){return spendAccountRows.find(a=>a.id===id)?.name||'Expense account'}
+function spendPermissionLabel(s){return s.allow_delete?'View, add and delete':s.allow_view?'View and add':'Add only'}
 async function refreshSpendShares(){
  if(!currentUser||!navigator.onLine)return;
- const {data,error}=await sb.from('spend_shares').select('id,owner_id,member_id,invite_email,status,allow_view,allow_delete,created_at').order('created_at',{ascending:false});
- if(error){console.warn('Unable to load household access',error);return}
- spendShareRows=data||[];
- const {data:accounts,error:accountError}=await sb.from('expense_accounts').select('id,owner_id,name,is_default,created_at').order('created_at');
- if(accountError){console.warn('Unable to load expense accounts',accountError);return}
- spendAccountRows=accounts||[];
+ const [{data:shares,error:shareError},{data:accounts,error:accountError}]=await Promise.all([
+  sb.from('spend_shares').select('id,account_id,owner_id,member_id,invite_email,status,allow_view,allow_delete,created_at').order('created_at',{ascending:false}),
+  sb.from('expense_accounts').select('id,owner_id,name,is_default,created_at').order('created_at')
+ ]);
+ if(shareError||accountError){console.warn('Could not load account sharing',shareError||accountError);return}
+ spendShareRows=shares||[];spendAccountRows=accounts||[];
  if(!spendActiveAccountId||!spendAccountRows.some(a=>a.id===spendActiveAccountId&&a.owner_id===currentUser.id))spendActiveAccountId=personalSpendAccount(currentUser.id)?.id||null;
- if(sharedSpendMode()&&!spendShareRows.some(s=>s.owner_id===spendWorkspaceOwner&&s.member_id===currentUser.id&&s.status==='active'))spendWorkspaceOwner=currentUser.id;
- if(sharedSpendMode()&&!canViewSpendExpenses()){expenses=[];expenseItems=[];document.getElementById('expenseDetails').style.display='none';}
- renderSpendShares();if(typeof render==='function')render();
+ if(sharedSpendMode()&&(!spendAccountRows.some(a=>a.id===spendSharedAccountId)||!activeSpendShare())){
+  spendWorkspaceOwner=currentUser.id;spendSharedAccountId=null;
+  expenses=[];expenseItems=[];
+  const details=document.getElementById('expenseDetails');if(details)details.style.display='none';
+ }
+ if(sharedSpendMode()&&!canViewSpendExpenses()){expenses=[];expenseItems=[]}
+ renderSpendShares();
+ if(typeof render==='function')render();
 }
 function renderSpendShares(){
  const select=document.getElementById('spendWorkspaceSelect'),list=document.getElementById('spendSharesList');
  if(!select||!list||!currentUser)return;
- const owner=activeSpendOwner(),incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active');
- select.innerHTML=spendAccountRows.filter(a=>a.owner_id===currentUser.id).map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Default':'')+'</option>').join('')+incoming.map(s=>'<option value="shared:'+s.owner_id+'">Shared · '+escapeHTML(personalSpendAccount(s.owner_id)?.name||'Personal')+'</option>').join('');
- select.value=sharedSpendMode()?'shared:'+owner:'account:'+activeSpendAccount();
+ const ownedAccounts=spendAccountRows.filter(a=>a.owner_id===currentUser.id);
+ const incoming=spendShareRows.filter(s=>s.member_id===currentUser.id&&s.status==='active'&&spendAccountRows.some(a=>a.id===s.account_id));
+ const ownOptions=ownedAccounts.map(a=>'<option value="account:'+a.id+'">'+escapeHTML(a.name)+(a.is_default?' · Default':'')+'</option>').join('');
+ const sharedOptions=incoming.map(s=>'<option value="shared:'+s.account_id+'">Shared with me · '+escapeHTML(spendAccountName(s.account_id))+'</option>').join('');
+ select.innerHTML='<optgroup label="My accounts">'+ownOptions+'</optgroup>'+(incoming.length?'<optgroup label="Shared with me">'+sharedOptions+'</optgroup>':'');
+ select.value=sharedSpendMode()?'shared:'+activeSpendAccount():'account:'+activeSpendAccount();
+ const inviteAccount=document.getElementById('spendInviteAccount');
+ if(inviteAccount){
+  const previous=inviteAccount.value;
+  inviteAccount.innerHTML=ownedAccounts.map(a=>'<option value="'+a.id+'">'+escapeHTML(a.name)+'</option>').join('');
+  if(ownedAccounts.some(a=>a.id===previous))inviteAccount.value=previous;
+  else if(ownedAccounts.some(a=>a.id===activeSpendAccount()))inviteAccount.value=activeSpendAccount();
+ }
  renderSpendAccountManager();
  const owned=spendShareRows.filter(s=>s.owner_id===currentUser.id);
  const pending=spendShareRows.filter(s=>s.status==='pending'&&s.owner_id!==currentUser.id);
- list.innerHTML='<h4>People you invited</h4>'+(owned.map(s=>
- '<div class="row" style="flex-wrap:wrap;gap:12px"><div><strong>'+escapeHTML(s.invite_email)+'</strong><small>'+escapeHTML(s.status)+'</small></div>'+
- '<label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" style="width:18px;height:18px" '+(s.allow_view?'checked':'')+' onchange="setSpendAccess(\''+s.id+'\',this.checked,'+(s.allow_delete?'true':'false')+')">View all expenses</label>'+
- '<label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" style="width:18px;height:18px" '+(s.allow_delete?'checked':'')+(s.allow_view?'':' disabled')+' onchange="setSpendAccess(\''+s.id+'\','+(s.allow_view?'true':'false')+',this.checked)">Allow delete</label>'+
- '<button class="muted" onclick="removeSpendShare(\''+s.id+'\')">Remove</button></div>'
- ).join('')||'<p>No invitations yet.</p>')+
- '<h4>Invitations for you</h4>'+(pending.map(s=>'<div class="row"><span>Household invitation · '+(s.allow_view?'Can view expenses':'Capture only')+'</span><button class="primary" onclick="acceptSpendShare(\''+s.id+'\')">Accept</button></div>').join('')||'<p>No pending invitations.</p>')+
- (incoming.length?'<h4>Accounts shared with you</h4>'+incoming.map(s=>'<div class="row"><span>Shared household · '+(s.allow_view?'View and capture':'Capture only')+'</span><button class="muted" onclick="removeSpendShare(\''+s.id+'\')">Leave</button></div>').join(''):'');
- const note=document.getElementById('spendWorkspaceNote');if(note)note.textContent=sharedSpendMode()?'Shared household: online only. '+(!canViewSpendExpenses()?'Capture only — you cannot view household transactions.':(canDeleteSpendExpense()?'You can view and delete expenses.':'You can view expenses, but not delete them.')):'Your '+(spendAccountRows.find(a=>a.id===activeSpendAccount())?.name||'Personal')+' expenses. '+(isPersonalSpendAccount()?'Offline PIN is available for Personal.' :'Additional accounts require internet.');
+ const heading=(name)=>'<h4 style="margin:22px 0 8px">'+name+'</h4>';
+ const ownedRows=owned.map(s=>{
+  const level=s.allow_delete?'manage':s.allow_view?'view':'capture';
+  return '<div class="row" style="flex-wrap:wrap;gap:12px"><div style="flex:1;min-width:180px"><strong>'+escapeHTML(s.invite_email)+'</strong><small>'+escapeHTML(spendAccountName(s.account_id))+' · '+(s.status==='pending'?'Invitation pending':'Active access')+'</small></div>'+
+  '<label style="font-size:13px">Permission<select aria-label="Permission for '+escapeHTML(s.invite_email)+'" onchange="setSpendAccess(\''+s.id+'\',this.value)" style="min-width:175px"><option value="capture"'+(level==='capture'?' selected':'')+'>Add only</option><option value="view"'+(level==='view'?' selected':'')+'>View and add</option><option value="manage"'+(level==='manage'?' selected':'')+'>View, add and delete</option></select></label>'+
+  '<button class="muted" type="button" onclick="removeSpendShare(\''+s.id+'\')">Remove</button></div>';
+ }).join('');
+ const pendingRows=pending.map(s=>'<div class="row" style="flex-wrap:wrap;gap:12px"><div style="flex:1"><strong>'+escapeHTML(spendAccountName(s.account_id))+'</strong><small>Permission: '+spendPermissionLabel(s)+'</small></div><button class="primary" type="button" onclick="acceptSpendShare(\''+s.id+'\')">Accept invitation</button></div>').join('');
+ const incomingRows=incoming.map(s=>'<div class="row"><div><strong>'+escapeHTML(spendAccountName(s.account_id))+'</strong><small>'+spendPermissionLabel(s)+'</small></div><button class="muted" type="button" onclick="removeSpendShare(\''+s.id+'\')">Leave</button></div>').join('');
+ list.innerHTML=heading('People you invited')+(ownedRows||'<p class="note">No invitations yet. Choose an account and invite someone above.</p>')+
+ heading('Invitations waiting for you')+(pendingRows||'<p class="note">No pending invitations.</p>')+
+ (incoming.length?heading('Accounts shared with you')+incomingRows:'');
+ const note=document.getElementById('spendWorkspaceNote');
+ if(note)note.textContent=sharedSpendMode()?
+  ('Shared account · '+spendPermissionLabel(activeSpendShare()||{allow_view:false,allow_delete:false})+' · Online only'):
+  ('Your '+spendAccountName(activeSpendAccount())+' account · '+(isPersonalSpendAccount()?'Offline PIN available':'Online only'));
 }
 async function inviteSpendShare(){
- if(!navigator.onLine){alert('Connect to invite someone.');return}
- const input=document.getElementById('spendInviteEmail'),email=input.value.trim();
- if(!email)return;
- const allowView=document.getElementById('spendInviteAllowView')?.checked||false;
- const allowDelete=allowView&&(document.getElementById('spendInviteAllowDelete')?.checked||false);
- const {error}=await sb.rpc('spend_invite_with_access',{p_email:email,p_allow_view:allowView,p_allow_delete:allowDelete});
+ if(!navigator.onLine){alert('Connect to send an invitation.');return}
+ const account=document.getElementById('spendInviteAccount').value;
+ const email=document.getElementById('spendInviteEmail').value.trim();
+ const permission=document.getElementById('spendInvitePermission').value;
+ if(!account||!email){alert('Choose an account and enter an email address.');return}
+ if(!spendAccountRows.some(a=>a.id===account&&a.owner_id===currentUser?.id)){alert('Select one of your accounts.');return}
+ const {error}=await sb.rpc('spend_invite_account',{p_account:account,p_email:email,p_allow_view:permission!=='capture',p_allow_delete:permission==='manage'});
  if(error){alert('Invitation failed: '+error.message);return}
- input.value='';document.getElementById('spendInviteAllowView').checked=false;document.getElementById('spendInviteAllowDelete').checked=false;document.getElementById('spendInviteAllowDelete').disabled=true;await refreshSpendShares();
- alert('Invitation created. Ask '+email+' to create or sign into their own ZeroHours Spend account with that email and accept the invitation in Configure → Shared access. Email invitations are not automatically sent yet.');
+ document.getElementById('spendInviteEmail').value='';
+ await refreshSpendShares();
+ alert('Invitation ready for '+email+'. Ask them to sign in with that address and accept '+spendAccountName(account)+' under Configure → Shared access. Invitations are not emailed automatically yet.');
 }
-async function setSpendAccess(id,allowView,allowDelete){
- if(!navigator.onLine){alert('Connect to change permissions.');renderSpendShares();return}
- const {error}=await sb.rpc('spend_set_access',{p_id:id,p_allow_view:allowView,p_allow_delete:allowView&&allowDelete});
- if(error)alert('Unable to update permissions: '+error.message);
+async function setSpendAccess(id,level){
+ if(!navigator.onLine){alert('Connect to change access.');renderSpendShares();return}
+ const {error}=await sb.rpc('spend_set_access',{p_id:id,p_allow_view:level!=='capture',p_allow_delete:level==='manage'});
+ if(error)alert('Could not update permission: '+error.message);
  await refreshSpendShares();
  if(sharedSpendMode())await loadCloudExpenses();
 }
 async function acceptSpendShare(id){
  if(!navigator.onLine){alert('Connect to accept an invitation.');return}
- const {error}=await sb.rpc('spend_accept_invite',{p_id:id});if(error){alert(error.message);return}
- await refreshSpendShares();alert('Invitation accepted. Select the shared household from the account selector.');
+ const {error}=await sb.rpc('spend_accept_invite',{p_id:id});
+ if(error){alert('Unable to accept invitation: '+error.message);return}
+ await refreshSpendShares();
+ const share=spendShareRows.find(s=>s.id===id);
+ if(share&&confirm('Invitation accepted. Open '+spendAccountName(share.account_id)+' now?'))await switchSpendWorkspace('shared:'+share.account_id);
 }
 async function removeSpendShare(id){
  if(!navigator.onLine){alert('Connect to change shared access.');return}
- if(!confirm('Remove this shared access?'))return;
- const {error}=await sb.rpc('spend_remove_share',{p_id:id});if(error){alert(error.message);return}
- await refreshSpendShares();await loadCloudExpenses();
+ if(!confirm('Remove this person’s access to the selected expense account?'))return;
+ const {error}=await sb.rpc('spend_remove_share',{p_id:id});
+ if(error){alert('Could not remove access: '+error.message);return}
+ await refreshSpendShares();
+ if(sharedSpendMode())await loadCloudExpenses();
 }
 async function switchSpendWorkspace(value){
  if(!currentUser)return;
- if(!navigator.onLine){alert('Switching expense accounts requires an internet connection.');renderSpendShares();return}
+ if(!navigator.onLine){alert('Switching accounts requires internet.');renderSpendShares();return}
  if(value.startsWith('account:')){
   const account=value.slice(8);
-  if(!spendAccountRows.some(a=>a.id===account&&a.owner_id===currentUser.id)){alert('Account not found.');renderSpendShares();return}
-  spendWorkspaceOwner=currentUser.id;spendActiveAccountId=account;
+  const found=spendAccountRows.find(a=>a.id===account&&a.owner_id===currentUser.id);
+  if(!found){alert('Account not found.');renderSpendShares();return}
+  spendWorkspaceOwner=currentUser.id;spendSharedAccountId=null;spendActiveAccountId=account;
  }else if(value.startsWith('shared:')){
-  const owner=value.slice(7);
-  if(!spendShareRows.some(s=>s.owner_id===owner&&s.member_id===currentUser.id&&s.status==='active')){alert('Shared access is no longer available.');renderSpendShares();return}
-  spendWorkspaceOwner=owner;
+  const account=value.slice(7);
+  const found=spendAccountRows.find(a=>a.id===account);
+  const share=spendShareRows.find(s=>s.account_id===account&&s.member_id===currentUser.id&&s.status==='active');
+  if(!found||!share){alert('Shared access is no longer available.');renderSpendShares();return}
+  spendWorkspaceOwner=found.owner_id;spendSharedAccountId=account;
  }else{return}
  editingId=null;draftItems=[];renderItemEditor();
  document.getElementById('expenseForm').reset();
@@ -89,7 +124,7 @@ function renderSpendAccountManager(){
  const list=document.getElementById('spendAccountManager');
  if(!list||!currentUser)return;
  const owned=spendAccountRows.filter(a=>a.owner_id===currentUser.id);
- list.innerHTML=owned.map(a=>'<div class="row"><div><strong>'+escapeHTML(a.name)+'</strong><small>'+(a.is_default?'Default account · cannot be deleted':'Separate expenses and budgets')+'</small></div><div class="toolbar"><button class="muted" type="button" onclick="renameSpendAccount(\''+a.id+'\')">Rename</button>'+(a.is_default?'':'<button class="muted" type="button" onclick="deleteSpendAccount(\''+a.id+'\')">Delete</button>')+'</div></div>').join('');
+ list.innerHTML=owned.map(a=>'<div class="row" style="flex-wrap:wrap;gap:12px"><div style="flex:1"><strong>'+escapeHTML(a.name)+'</strong><small>'+(a.is_default?'Default account · cannot be deleted':'Private unless you invite someone')+'</small></div><button class="muted" type="button" onclick="renameSpendAccount(\''+a.id+'\')">Rename</button>'+(a.is_default?'':'<button class="muted" type="button" onclick="deleteSpendAccount(\''+a.id+'\')">Delete</button>')+'</div>').join('');
 }
 async function createSpendAccount(){
  if(!currentUser||!navigator.onLine){alert('Connect to create an account.');return}
@@ -110,9 +145,9 @@ async function renameSpendAccount(id){
 }
 async function deleteSpendAccount(id){
  const account=spendAccountRows.find(a=>a.id===id&&a.owner_id===currentUser.id&&!a.is_default);if(!account)return;
- if(!confirm('Delete the empty account "'+account.name+'"? Accounts with expenses or spending alerts cannot be deleted.'))return;
+ if(!confirm('Delete empty account "'+account.name+'"? Accounts with expenses, alerts or shared members cannot be deleted.'))return;
  const {error}=await sb.from('expense_accounts').delete().eq('id',id).eq('owner_id',currentUser.id);
- if(error){alert('Account cannot be deleted until its expenses and alert rules have been removed. '+error.message);return}
+ if(error){alert('This account cannot be deleted until its expenses, alerts and shared access have been removed. '+error.message);return}
  spendActiveAccountId=personalSpendAccount(currentUser.id)?.id;
  await refreshSpendShares();await loadCloudExpenses();
 }
