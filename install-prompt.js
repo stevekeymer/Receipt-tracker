@@ -65,7 +65,12 @@
   setTimeout(show,4500);
  });
  window.addEventListener('appinstalled',dismiss);
- document.addEventListener('DOMContentLoaded',()=>{
-  if(ios)setTimeout(show,4500);
- });
+ // This script is injected after DOMContentLoaded by trial.js.
+ // Run immediately when the document is already interactive/complete.
+ const schedule=()=>{if(ios)setTimeout(show,4500)};
+ if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',schedule,{once:true});
+ }else{
+  schedule();
+ }
 })();
