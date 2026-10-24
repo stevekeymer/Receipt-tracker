@@ -16,7 +16,7 @@ self.addEventListener('fetch',event=>{
  if(request.method!=='GET')return;
  const url=new URL(request.url);
  if(url.origin!==self.location.origin&&url.href!==SUPABASE_JS)return;
- if(url.origin===self.location.origin&&(/^\\/(api|auth|rest)\\//.test(url.pathname)))return;
+ if(url.origin===self.location.origin&&['/api/','/auth/','/rest/'].some(prefix=>url.pathname.startsWith(prefix)))return;
  if(request.mode==='navigate'){
   event.respondWith((async()=>{
    try{
@@ -29,7 +29,7 @@ self.addEventListener('fetch',event=>{
    }
   })());return;
  }
- const script=/\\.(?:js|css)$/.test(url.pathname)||url.href===SUPABASE_JS;
+ const script=url.pathname.endsWith('.js')||url.pathname.endsWith('.css')||url.href===SUPABASE_JS;
  if(script){
   event.respondWith((async()=>{
    const cache=await caches.open(CACHE);
