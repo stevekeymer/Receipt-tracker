@@ -33,7 +33,10 @@ body.dark{color-scheme:dark;background:#161b2c;color:#edf3ff}
 .dark #offlineStatus{background:#45391e!important;color:#ffe2a0!important}
 .dark [style*="background:#f9faff"]{background:#2b354d!important}
 .dark [style*="background:#e5e9f2"]{background:#3b4661!important}
-</style></head><body>
+
+/* Public development notice: normal document flow, readable on mobile. */
+.zh-development-notice{display:block;box-sizing:border-box;width:100%;margin:0;padding:14px 20px;background:#ffeb00;color:#17252b;border-bottom:2px solid #d7c400;font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;text-align:center;overflow-wrap:anywhere}.zh-development-notice strong{font-weight:800}
+</style></head><body><aside class="zh-development-notice" aria-label="Development notice"><strong>Under development — not officially launched.</strong> ZeroHours Spend is still being developed. Features may change.</aside>
 <div id="spendMfaGate" role="dialog" aria-modal="true" aria-labelledby="spendMfaTitle" style="position:fixed;inset:0;background:#161b2c;z-index:80;display:none;place-items:center;padding:18px"><div class="panel" style="width:min(100%,440px)"><h2 id="spendMfaTitle">Verify it’s you</h2><p>Enter the six-digit code from your authenticator app to finish signing in.</p><form onsubmit="spendMfaVerifyLogin(event)"><div class="field"><label for="spendMfaCode">Authentication code</label><input id="spendMfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></div><button class="primary" type="submit" id="spendMfaLoginSubmit" style="width:100%">Verify and sign in</button></form><p id="spendMfaLoginMessage" role="status"></p><button class="muted" type="button" onclick="spendMfaCancelLogin()">Back to sign in</button><p class="note">Lost access to your authenticator? Contact support for account recovery.</p></div></div>
 <div id="spendTrialGate" style="position:fixed;inset:0;background:#161b2c;z-index:65;display:none;place-items:center;padding:20px;overflow-y:auto">
  <div class="panel" style="width:min(100%,510px);background:#222a40;color:#f2f5ff;padding:28px;border-radius:18px">
